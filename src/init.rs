@@ -84,7 +84,8 @@ pub fn load_from_db(db_conn: &Connection) -> Result<Vec<Transaction>> {
     Ok(transactions)
 }
 
-pub fn init_db(db_path: &str) -> Result<Connection> {
+pub fn init_db(home_path: &str) -> Result<Connection> {
+    let db_path = format!("{}stonks-rs.db", home_path);
     let conn = Connection::open(db_path)?;
 
     let create_tables_string = r"PRAGMA foreign_keys = ON;
