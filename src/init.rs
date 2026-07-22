@@ -1,55 +1,9 @@
-use anyhow::{Error, Result};
-use chrono::NaiveDate;
-use rusqlite::{Connection, types::FromSql};
+use std::path::PathBuf;
 
-#[derive(Debug)]
-pub enum Currency {
-    USD,
-    EUR,
-}
+use anyhow::Result;
+use rusqlite::Connection;
 
-#[derive(Debug)]
-pub enum TransactionType {
-    Buy,
-    Sell,
-}
-
-impl FromSql for TransactionType {
-    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
-        match value.as_str()? {
-            "buy" => Ok(TransactionType::Buy),
-            "sell" => Ok(TransactionType::Sell),
-
-            _ => Err(rusqlite::types::FromSqlError::Other(
-                "Unknown transaction type".into(),
-            )),
-        }
-    }
-}
-
-impl FromSql for Currency {
-    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
-        match value.as_str()? {
-            "usd" => Ok(Currency::USD),
-            "eur" => Ok(Currency::EUR),
-
-            _ => Err(rusqlite::types::FromSqlError::Other(
-                "Unknown currency".into(),
-            )),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Transaction {
-    id: i64,
-    ticker: String,
-    transaction_type: TransactionType,
-    trade_date: NaiveDate,
-    quantity: f32,
-    price: f32,
-    currency: Currency,
-}
+use crate::types::Transaction;
 
 pub fn load_from_db(db_conn: &Connection) -> Result<Vec<Transaction>> {
     let mut stmt = db_conn.prepare(
@@ -84,8 +38,9 @@ pub fn load_from_db(db_conn: &Connection) -> Result<Vec<Transaction>> {
     Ok(transactions)
 }
 
-pub fn init_db(home_path: &str) -> Result<Connection> {
-    let db_path = format!("{}stonks-rs.db", home_path);
+pub fn init_db(home_path: PathBuf) -> Result<Connection> {
+    let db_path = home_path.join(".local").join("share").join("stonks-rs");
+    let db_path = format!("{}stonks-rs.db", db_path.display());
     let conn = Connection::open(db_path)?;
 
     let create_tables_string = r"PRAGMA foreign_keys = ON;
