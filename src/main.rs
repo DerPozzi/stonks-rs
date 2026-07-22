@@ -3,7 +3,7 @@ use crate::{
         database::add_transaction,
         yahoo::{TimeFrame, get_asset_data},
     },
-    init::{init_db, load_from_db},
+    init::{create_if_no_cfg, init_db, load_from_db},
     types::Transaction,
 };
 use anyhow::Result;
@@ -14,13 +14,13 @@ mod backend;
 mod init;
 mod types;
 
-use config::{Config, File, FileFormat};
+use config::{Config, File};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 struct Settings {
     app: AppConfig,
 }
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 struct AppConfig {
     theme: String,
 }
@@ -32,8 +32,9 @@ async fn main() -> Result<()> {
         .join(".config")
         .join("stonks-rs")
         .join("config.toml");
+    create_if_no_cfg(config_path.clone())?;
     let builder = Config::builder()
-        .add_source(File::new(config_path.to_str().unwrap(), FileFormat::Toml))
+        .add_source(File::with_name(config_path.to_str().unwrap()))
         .build()?;
 
     let settings = builder.try_deserialize::<Settings>();
