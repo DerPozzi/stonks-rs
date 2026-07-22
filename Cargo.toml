@@ -6,5 +6,9 @@ author = "Gianluca Pozzo"
 
 [dependencies]
 anyhow = "1.0.104"
+chrono = "0.4.45"
+dirs = "6.0.0"
 ratatui = { version = "0.30.2", features = ["serde"] }
+rusqlite = {version= "0.40.1",features = ["bundled", "chrono"]}
+tokio = {version="1.53.1", features= ["full"]}
 yahoo_finance_api = "4.1.1"
