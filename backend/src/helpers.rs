@@ -1,9 +1,10 @@
 use crate::{
     database::{add_transaction, delete_transaction, edit_transaction},
-    types::Transaction,
+    types::{Transaction, TransactionType},
 };
 use anyhow::{Result, anyhow};
 use rusqlite::Connection;
+use rust_decimal::Decimal;
 
 pub fn add_transaction_to_list(
     conn: &Connection,
@@ -53,4 +54,15 @@ pub fn edit_transaction_in_list(
     let new_trans = edit_transaction(conn, trans)?;
     trans_list.push(new_trans);
     Ok(())
+}
+
+pub fn calc_shares(transactions: &[Transaction], ticker: &str) -> Decimal {
+    transactions
+        .iter()
+        .filter(|t| t.ticker == ticker)
+        .map(|t| match t.transaction_type {
+            TransactionType::Buy => t.quantity,
+            TransactionType::Sell => -t.quantity,
+        })
+        .sum()
 }
