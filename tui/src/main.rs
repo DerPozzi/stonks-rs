@@ -1,8 +1,9 @@
 use crate::{
     backend::{
         calculate::calc_avg_price,
-        database::{add_transaction, edit_transaction},
-        helpers::edit_transaction_in_list,
+        helpers::{
+            add_transaction_to_list, delete_transaction_from_list, edit_transaction_in_list,
+        },
         yahoo::{TimeFrame, get_asset_data},
     },
     init::{create_if_no_cfg, init_db, load_from_db},
@@ -11,10 +12,6 @@ use crate::{
 use anyhow::Result;
 use chrono::NaiveDate;
 use serde::Deserialize;
-
-mod backend;
-mod init;
-mod types;
 
 use config::{Config, File};
 
@@ -51,13 +48,15 @@ async fn main() -> Result<()> {
         price: 500.70,
         currency: types::Currency::USD,
     };
-    let _ = add_transaction(&conn, test_transaction)?;
     let mut transactions = load_from_db(&conn)?;
+    add_transaction_to_list(&conn, &mut transactions, test_transaction)?;
     //  let avg_price = calc_avg_price(&transactions, "AMD");
     println!("{:#?}", transactions);
     let mut temp = transactions.get(3).unwrap().clone();
     temp.ticker = "LMT".to_string();
-    let transactions = edit_transaction_in_list(transactions, temp, &conn);
+    edit_transaction_in_list(&conn, &mut transactions, temp)?;
+    println!("{:#?}", transactions);
+    delete_transaction_from_list(&conn, &mut transactions, 14)?;
     println!("{:#?}", transactions);
     // let _ = get_asset_data("PLTR".to_string(), TimeFrame::OneDay).await?;
     Ok(())

@@ -3,6 +3,7 @@ use rusqlite::{
     ToSql,
     types::{FromSql, ToSqlOutput},
 };
+use rust_decimal::Decimal;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Currency {
@@ -68,7 +69,8 @@ pub struct Transaction {
     pub ticker: String,
     pub transaction_type: TransactionType,
     pub trade_date: NaiveDate,
-    pub quantity: f32,
-    pub price: f32,
+    pub quantity: Decimal,
+    pub price: Decimal,
     pub currency: Currency,
+    pub fees: Decimal,
 }
