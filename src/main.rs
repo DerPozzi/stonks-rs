@@ -1,6 +1,8 @@
 use crate::{
     backend::{
-        database::add_transaction,
+        calculate::calc_avg_price,
+        database::{add_transaction, edit_transaction},
+        helpers::edit_transaction_in_list,
         yahoo::{TimeFrame, get_asset_data},
     },
     init::{create_if_no_cfg, init_db, load_from_db},
@@ -42,16 +44,21 @@ async fn main() -> Result<()> {
     let conn = init_db(home_path)?;
     let test_transaction = Transaction {
         id: None,
-        ticker: String::from("PLTR"),
+        ticker: String::from("AMD"),
         transaction_type: types::TransactionType::Buy,
         trade_date: NaiveDate::from_ymd_opt(2026, 06, 06).unwrap(),
         quantity: 1.32932221,
-        price: 128.70,
+        price: 500.70,
         currency: types::Currency::USD,
     };
     let _ = add_transaction(&conn, test_transaction)?;
-    let transactions = load_from_db(&conn)?;
+    let mut transactions = load_from_db(&conn)?;
+    //  let avg_price = calc_avg_price(&transactions, "AMD");
     println!("{:#?}", transactions);
-    let _ = get_asset_data("PLTR".to_string(), TimeFrame::OneDay).await?;
+    let mut temp = transactions.get(3).unwrap().clone();
+    temp.ticker = "LMT".to_string();
+    let transactions = edit_transaction_in_list(transactions, temp, &conn);
+    println!("{:#?}", transactions);
+    // let _ = get_asset_data("PLTR".to_string(), TimeFrame::OneDay).await?;
     Ok(())
 }

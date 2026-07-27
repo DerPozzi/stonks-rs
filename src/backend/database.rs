@@ -2,6 +2,46 @@ use crate::types::Transaction;
 use anyhow::Result;
 use rusqlite::Connection;
 
+pub fn delete_transaction(db_conn: &Connection, id: i32) -> Result<()> {
+    Ok(())
+}
+
+pub fn edit_transaction(db_conn: &Connection, transaction: Transaction) -> Result<Transaction> {
+    let new_transaction = db_conn.query_row(
+        "UPDATE transactions
+        SET 
+            ticker = ?1,
+            transaction_type = ?2,
+            trade_date = ?3,
+            quantity = ?4,
+            price = ?5,
+            currency = ?6
+        WHERE id = ?7
+        RETURNING id, ticker, transaction_type, trade_date, quantity, price, currency",
+        (
+            transaction.ticker,
+            transaction.transaction_type,
+            transaction.trade_date,
+            transaction.quantity,
+            transaction.price,
+            transaction.currency,
+            transaction.id,
+        ),
+        |row| {
+            Ok(Transaction {
+                id: Some(row.get(0)?),
+                ticker: row.get(1)?,
+                transaction_type: row.get(2)?,
+                trade_date: row.get(3)?,
+                quantity: row.get(4)?,
+                price: row.get(5)?,
+                currency: row.get(6)?,
+            })
+        },
+    )?;
+    Ok(new_transaction)
+}
+
 pub fn add_transaction(db_conn: &Connection, transaction: Transaction) -> Result<Transaction> {
     let new_transaction = db_conn.query_row(
         "

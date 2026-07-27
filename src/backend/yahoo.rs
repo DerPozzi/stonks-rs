@@ -20,7 +20,7 @@ pub async fn get_asset_data(asset_ticker: String, _time_frame: TimeFrame) -> Res
         .get_latest_quotes(asset_ticker.as_str(), "1d")
         .await?;
 
-    println!("{:?}", response);
+    println!("{:#?}", response);
 
     Ok(response)
 }

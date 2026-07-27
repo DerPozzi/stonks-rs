@@ -4,13 +4,13 @@ use rusqlite::{
     types::{FromSql, ToSqlOutput},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Currency {
     USD,
     EUR,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum TransactionType {
     Buy,
     Sell,
@@ -62,7 +62,7 @@ impl FromSql for Currency {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Transaction {
     pub id: Option<i64>,
     pub ticker: String,
