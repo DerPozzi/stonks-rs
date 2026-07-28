@@ -4,8 +4,10 @@ use rusqlite::Connection;
 use rust_decimal_macros::dec;
 use stonks_rs::{
     database::{
-        add_transaction, create_tables, delete_transaction, edit_transaction,
-        load_all_transactions_from_db,
+        database::create_tables,
+        transactions::{
+            add_transaction, delete_transaction, edit_transaction, load_all_transactions_from_db,
+        },
     },
     types::{Currency, Transaction, TransactionType},
 };

@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 use anyhow::Result;
 use rusqlite::Connection;
 
-use crate::database::create_tables;
+use crate::database::database::create_tables;
 
 pub fn create_if_no_cfg(config_path: PathBuf) -> Result<()> {
     if !config_path.exists() {

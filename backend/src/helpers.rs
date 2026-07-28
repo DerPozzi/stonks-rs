@@ -1,6 +1,9 @@
 use crate::{
-    database::{add_transaction, delete_transaction, edit_transaction},
-    types::{Transaction, TransactionType},
+    database::{
+        dividends::{add_dividend, delete_dividend, edit_dividend},
+        transactions::{add_transaction, delete_transaction, edit_transaction},
+    },
+    types::{Dividend, Transaction, TransactionType},
 };
 use anyhow::{Result, anyhow};
 use rusqlite::Connection;
@@ -54,6 +57,56 @@ pub fn edit_transaction_in_list(
 
     let new_trans = edit_transaction(conn, trans)?;
     trans_list.push(new_trans);
+    Ok(())
+}
+
+pub fn add_dividend_to_list(
+    conn: &Connection,
+    div_list: &mut Vec<Dividend>,
+    div: Dividend,
+) -> Result<()> {
+    let new_dividend = add_dividend(conn, div)?;
+    div_list.push(new_dividend);
+    Ok(())
+}
+
+pub fn delete_dividend_from_list(
+    conn: &Connection,
+    div_list: &mut Vec<Dividend>,
+    index: i64,
+) -> Result<()> {
+    let _ = delete_dividend(conn, index)?;
+    let index = div_list
+        .iter()
+        .position(|t| t.id.unwrap() == index)
+        .ok_or_else(|| {
+            anyhow!(
+                "Couldn't find dividend with id: {} in transaction list",
+                index
+            )
+        })?;
+    let _ = div_list.remove(index);
+    Ok(())
+}
+
+pub fn edit_dividend_in_list(
+    conn: &Connection,
+    div_list: &mut Vec<Dividend>,
+    div: Dividend,
+) -> Result<()> {
+    let index = div_list
+        .iter()
+        .position(|t| t.id == div.id)
+        .ok_or_else(|| {
+            anyhow!(
+                "Couldn't find dividend with id: {} in transaction list",
+                div.id.unwrap()
+            )
+        })?;
+    let _ = div_list.remove(index);
+
+    let new_div = edit_dividend(conn, div)?;
+    div_list.push(new_div);
     Ok(())
 }
 

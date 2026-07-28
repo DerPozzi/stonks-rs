@@ -1,6 +1,5 @@
 use anyhow::Result;
 use rust_decimal::Decimal;
-use rust_decimal_macros::dec;
 use yahoo_finance_api::{self as yahoo, YResponse};
 
 pub enum TimeFrame {
