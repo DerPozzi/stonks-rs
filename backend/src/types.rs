@@ -74,3 +74,13 @@ pub struct Transaction {
     pub currency: Currency,
     pub fees: Decimal,
 }
+
+#[derive(Debug, Clone)]
+pub struct Dividend {
+    pub id: Option<i64>,
+    pub ticker: String,
+    pub payment_date: NaiveDate,
+    pub amount: Decimal,
+    pub taxes: Decimal,
+    pub currency: Currency,
+}
