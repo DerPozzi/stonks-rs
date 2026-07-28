@@ -6,7 +6,7 @@ use rust_decimal_macros::dec;
 use anyhow::Result;
 
 use crate::{
-    helpers::calc_shares,
+    service::service::calc_shares,
     types::{Dividend, Transaction, TransactionType},
     yahoo::get_current_asset_price,
 };
