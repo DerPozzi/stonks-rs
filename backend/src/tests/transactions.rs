@@ -1,8 +1,7 @@
 use chrono::NaiveDate;
 use rusqlite::Connection;
 
-use rust_decimal_macros::dec;
-use stonks_rs::{
+use crate::{
     database::{
         database::create_tables,
         transactions::{
@@ -11,6 +10,7 @@ use stonks_rs::{
     },
     types::{Currency, Transaction, TransactionType},
 };
+use rust_decimal_macros::dec;
 
 fn test_db() -> anyhow::Result<Connection> {
     let conn = Connection::open_in_memory()?;

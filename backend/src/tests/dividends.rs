@@ -1,14 +1,14 @@
 use chrono::NaiveDate;
 use rusqlite::Connection;
 
-use rust_decimal_macros::dec;
-use stonks_rs::{
+use crate::{
     database::{
         database::create_tables,
         dividends::{add_dividend, delete_dividend, edit_dividend, load_all_dividends_from_db},
     },
     types::{Currency, Dividend},
 };
+use rust_decimal_macros::dec;
 
 fn test_db() -> anyhow::Result<Connection> {
     let conn = Connection::open_in_memory()?;
