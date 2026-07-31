@@ -12,12 +12,12 @@ use rust_decimal_macros::dec;
 
 const CURRENT_PRICE: Decimal = dec!(500);
 
-#[test]
-fn cost_price() -> anyhow::Result<()> {
-    let transactions = vec![
+fn sample_transactions() -> Vec<Transaction> {
+    return vec![
         Transaction {
             id: None,
             ticker: "AMD".into(),
+            isin: "US0079031078".into(),
             transaction_type: TransactionType::Buy,
             trade_date: NaiveDate::from_ymd_opt(2026, 6, 27).unwrap(),
             quantity: dec!(0.09937081),
@@ -28,6 +28,7 @@ fn cost_price() -> anyhow::Result<()> {
         Transaction {
             id: None,
             ticker: "AMD".into(),
+            isin: "US0079031078".into(),
             transaction_type: TransactionType::Buy,
             trade_date: NaiveDate::from_ymd_opt(2026, 07, 1).unwrap(),
             quantity: dec!(0.02882124),
@@ -36,6 +37,11 @@ fn cost_price() -> anyhow::Result<()> {
             fees: dec!(0.02),
         },
     ];
+}
+
+#[test]
+fn cost_price() -> anyhow::Result<()> {
+    let transactions = sample_transactions();
 
     let cost_price = calc_avg_cost(&transactions, "AMD");
 
@@ -46,28 +52,7 @@ fn cost_price() -> anyhow::Result<()> {
 
 #[test]
 fn unrealized_gain() -> anyhow::Result<()> {
-    let transactions = vec![
-        Transaction {
-            id: None,
-            ticker: "AMD".into(),
-            transaction_type: TransactionType::Buy,
-            trade_date: NaiveDate::from_ymd_opt(2026, 6, 27).unwrap(),
-            quantity: dec!(0.09937081),
-            price: dec!(45.97),
-            currency: Currency::EUR,
-            fees: dec!(0.07),
-        },
-        Transaction {
-            id: None,
-            ticker: "AMD".into(),
-            transaction_type: TransactionType::Buy,
-            trade_date: NaiveDate::from_ymd_opt(2026, 07, 1).unwrap(),
-            quantity: dec!(0.02882124),
-            price: dec!(14.53),
-            currency: Currency::EUR,
-            fees: dec!(0.02),
-        },
-    ];
+    let transactions = sample_transactions();
 
     let unrealized_gain = calc_unrealized_gain(&transactions, "AMD", CURRENT_PRICE)?;
 
@@ -77,28 +62,7 @@ fn unrealized_gain() -> anyhow::Result<()> {
 
 #[test]
 fn realized_gain() -> anyhow::Result<()> {
-    let transactions = vec![
-        Transaction {
-            id: None,
-            ticker: "AMD".into(),
-            transaction_type: TransactionType::Buy,
-            trade_date: NaiveDate::from_ymd_opt(2026, 6, 27).unwrap(),
-            quantity: dec!(10),
-            price: dec!(100),
-            currency: Currency::EUR,
-            fees: dec!(1),
-        },
-        Transaction {
-            id: None,
-            ticker: "AMD".into(),
-            transaction_type: TransactionType::Sell,
-            trade_date: NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(),
-            quantity: dec!(5),
-            price: dec!(120),
-            currency: Currency::EUR,
-            fees: dec!(2),
-        },
-    ];
+    let transactions = sample_transactions();
 
     let realized_gain = calc_realized_gains(&transactions, "AMD")?;
 
@@ -107,12 +71,12 @@ fn realized_gain() -> anyhow::Result<()> {
     Ok(())
 }
 
-#[test]
-fn dividends() -> anyhow::Result<()> {
-    let dividends = vec![
+fn sample_dividends() -> Vec<Dividend> {
+    return vec![
         Dividend {
             id: None,
             ticker: "AMD".into(),
+            isin: "US0079031078".into(),
             payment_date: NaiveDate::from_ymd_opt(2026, 3, 1).unwrap(),
             amount: dec!(10),
             taxes: dec!(2),
@@ -121,12 +85,18 @@ fn dividends() -> anyhow::Result<()> {
         Dividend {
             id: None,
             ticker: "AMD".into(),
+            isin: "US0079031078".into(),
             payment_date: NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
             amount: dec!(15),
             taxes: dec!(3),
             currency: Currency::EUR,
         },
     ];
+}
+
+#[test]
+fn dividends() -> anyhow::Result<()> {
+    let dividends = sample_dividends();
 
     let gross = calc_gross_dividends(&dividends, "AMD");
     let net = calc_net_dividends(&dividends, "AMD");
@@ -139,28 +109,7 @@ fn dividends() -> anyhow::Result<()> {
 
 #[test]
 fn sale_value() -> anyhow::Result<()> {
-    let transactions = vec![
-        Transaction {
-            id: None,
-            ticker: "AMD".into(),
-            transaction_type: TransactionType::Buy,
-            trade_date: NaiveDate::from_ymd_opt(2026, 6, 27).unwrap(),
-            quantity: dec!(0.09937081),
-            price: dec!(45.97),
-            currency: Currency::EUR,
-            fees: dec!(0.07),
-        },
-        Transaction {
-            id: None,
-            ticker: "AMD".into(),
-            transaction_type: TransactionType::Buy,
-            trade_date: NaiveDate::from_ymd_opt(2026, 07, 1).unwrap(),
-            quantity: dec!(0.02882124),
-            price: dec!(14.53),
-            currency: Currency::EUR,
-            fees: dec!(0.02),
-        },
-    ];
+    let transactions = sample_transactions();
 
     let sale_value = calc_sale_value(&transactions, "AMD")?;
     assert_eq!(sale_value, dec!(0));
@@ -169,28 +118,7 @@ fn sale_value() -> anyhow::Result<()> {
 
 #[test]
 fn market_value() -> anyhow::Result<()> {
-    let transactions = vec![
-        Transaction {
-            id: None,
-            ticker: "AMD".into(),
-            transaction_type: TransactionType::Buy,
-            trade_date: NaiveDate::from_ymd_opt(2026, 6, 27).unwrap(),
-            quantity: dec!(0.09937081),
-            price: dec!(45.97),
-            currency: Currency::EUR,
-            fees: dec!(0.07),
-        },
-        Transaction {
-            id: None,
-            ticker: "AMD".into(),
-            transaction_type: TransactionType::Buy,
-            trade_date: NaiveDate::from_ymd_opt(2026, 07, 1).unwrap(),
-            quantity: dec!(0.02882124),
-            price: dec!(14.53),
-            currency: Currency::EUR,
-            fees: dec!(0.02),
-        },
-    ];
+    let transactions = sample_transactions();
     let result = calc_market_value(&transactions, "AMD", CURRENT_PRICE)?;
 
     assert_eq!(result.round_dp(2), dec!(64.1));

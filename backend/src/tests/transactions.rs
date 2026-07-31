@@ -22,6 +22,7 @@ fn sample_transaction() -> Transaction {
     Transaction {
         id: Some(0),
         ticker: "VWCE".into(),
+        isin: "test".into(),
         transaction_type: TransactionType::Buy,
         trade_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
         quantity: dec!(10.0),
