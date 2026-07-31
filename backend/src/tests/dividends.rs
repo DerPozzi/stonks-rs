@@ -20,7 +20,6 @@ fn sample_dividend() -> Dividend {
     Dividend {
         id: Some(0),
         ticker: "VWCE".into(),
-        isin: "test".into(),
         payment_date: NaiveDate::from_ymd_opt(2025, 1, 1).unwrap(),
         amount: dec!(10.0),
         currency: Currency::EUR,

@@ -17,7 +17,6 @@ fn sample_transactions() -> Vec<Transaction> {
         Transaction {
             id: None,
             ticker: "AMD".into(),
-            isin: "US0079031078".into(),
             transaction_type: TransactionType::Buy,
             trade_date: NaiveDate::from_ymd_opt(2026, 6, 27).unwrap(),
             quantity: dec!(0.09937081),
@@ -28,7 +27,6 @@ fn sample_transactions() -> Vec<Transaction> {
         Transaction {
             id: None,
             ticker: "AMD".into(),
-            isin: "US0079031078".into(),
             transaction_type: TransactionType::Buy,
             trade_date: NaiveDate::from_ymd_opt(2026, 07, 1).unwrap(),
             quantity: dec!(0.02882124),
@@ -76,7 +74,6 @@ fn sample_dividends() -> Vec<Dividend> {
         Dividend {
             id: None,
             ticker: "AMD".into(),
-            isin: "US0079031078".into(),
             payment_date: NaiveDate::from_ymd_opt(2026, 3, 1).unwrap(),
             amount: dec!(10),
             taxes: dec!(2),
@@ -85,7 +82,6 @@ fn sample_dividends() -> Vec<Dividend> {
         Dividend {
             id: None,
             ticker: "AMD".into(),
-            isin: "US0079031078".into(),
             payment_date: NaiveDate::from_ymd_opt(2026, 6, 1).unwrap(),
             amount: dec!(15),
             taxes: dec!(3),
