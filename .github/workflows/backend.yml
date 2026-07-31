@@ -19,6 +19,10 @@ jobs:
   backend:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: backend
+
     steps:
       - uses: actions/checkout@v4
 
@@ -32,10 +36,10 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Clippy
-        run: cargo clippy --lib backend --all-features -- -D warnings
+        run: cargo clippy --bin backend --all-features -- -D warnings
 
       - name: Build
-        run: cargo build --lib backend --all-features
+        run: cargo build --bin backend --all-features
 
       - name: Test
-        run: cargo test --lib backend --all-features
+        run: cargo test --bin backend --all-features
