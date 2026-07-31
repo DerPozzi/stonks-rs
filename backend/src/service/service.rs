@@ -21,7 +21,7 @@ pub fn init_db(path: PathBuf) -> Result<Connection> {
     Ok(conn)
 }
 
-/// Calculate amoutn of shares
+/// Calculate amount of shares
 ///
 /// Calculates the number of bought and sold shares and returns them as (bought, sold)
 pub fn calc_shares(transactions: &[Transaction], ticker: &str) -> (Decimal, Decimal) {

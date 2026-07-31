@@ -64,23 +64,34 @@ impl FromSql for Currency {
 }
 
 #[derive(Debug, Clone)]
+/// Transaction type holding all informtaion on past transactions
 pub struct Transaction {
     pub id: Option<i64>,
+    /// Ticker of the given asset, make sure to use the right ticker from the right exchange
     pub ticker: String,
+    /// Can either be buy or sell
     pub transaction_type: TransactionType,
     pub trade_date: NaiveDate,
+    /// Amount of shares traded in transaction
     pub quantity: Decimal,
+    /// Price per share
     pub price: Decimal,
+    /// Currency the transaction was made in, conversion will be done automatically if the assets
+    /// currency differs
     pub currency: Currency,
     pub fees: Decimal,
 }
 
 #[derive(Debug, Clone)]
+/// Dividend type holding all informtaion on paid out dividends
 pub struct Dividend {
     pub id: Option<i64>,
+    /// Ticker of the given asset, make sure to use the right ticker from the right exchange
     pub ticker: String,
     pub payment_date: NaiveDate,
+    /// Amount of paid out
     pub amount: Decimal,
     pub taxes: Decimal,
+    /// Currency of the pay out, will be converted automatically
     pub currency: Currency,
 }
