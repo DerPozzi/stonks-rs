@@ -37,10 +37,10 @@ jobs:
         continue-on-error: true
 
       - name: Clippy
-        run: cargo clippy --lib backend --all-features -- -D warnings
+        run: cargo clippy --all-features -- -D warnings
 
       - name: Build
-        run: cargo build --lib backend --all-features
+        run: cargo build --all-features
 
       - name: Test
         run: cargo test --all-features
