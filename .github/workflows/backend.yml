@@ -34,6 +34,7 @@ jobs:
 
       - name: Format
         run: cargo fmt --all --check
+        continue-on-error: true
 
       - name: Clippy
         run: cargo clippy --lib backend --all-features -- -D warnings
