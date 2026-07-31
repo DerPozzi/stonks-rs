@@ -1,6 +1,5 @@
 mod calculate;
 mod database;
-mod helpers;
 mod init;
 mod yahoo;
 
