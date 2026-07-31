@@ -24,11 +24,8 @@ pub fn calc_avg_cost(transactions: &[Transaction], ticker: &str) -> Decimal {
     // Einstandspreis = Menge(Stückzahl x Kurspreis + Gebühren) / Menge(Stückzahl)
 
     for tx in transactions.iter().filter(|t| t.ticker == ticker) {
-        match tx.transaction_type {
-            TransactionType::Buy => {
-                total_cost += tx.quantity * tx.price + tx.fees;
-            }
-            _ => {}
+        if let TransactionType::Buy = tx.transaction_type {
+            total_cost += tx.quantity * tx.price + tx.fees;
         }
     }
 

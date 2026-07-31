@@ -5,11 +5,9 @@ use rusqlite::Connection;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
-use crate::calculate::*;
 use crate::database::*;
 use crate::init::*;
 use crate::types::*;
-use crate::yahoo::*;
 
 /// Init db
 ///
@@ -29,8 +27,8 @@ pub fn calc_shares(transactions: &[Transaction], ticker: &str) -> (Decimal, Deci
     let mut sell = dec!(0);
     for tx in transactions.iter().filter(|t| t.ticker == ticker) {
         match tx.transaction_type {
-            TransactionType::Buy => buy = buy + tx.quantity,
-            TransactionType::Sell => sell = sell + tx.quantity,
+            TransactionType::Buy => buy += tx.quantity,
+            TransactionType::Sell => sell += tx.quantity,
         }
     }
     (buy, sell)

@@ -1,14 +1,9 @@
 use anyhow::Result;
 use anyhow::anyhow;
 use rusqlite::Connection;
-use rust_decimal::Decimal;
-use rust_decimal_macros::dec;
 
-use crate::calculate::*;
 use crate::database::*;
-use crate::init::*;
 use crate::types::*;
-use crate::yahoo::*;
 
 pub fn add_transaction_to_list(
     conn: &Connection,
@@ -25,7 +20,7 @@ pub fn delete_transaction_from_list(
     trans_list: &mut Vec<Transaction>,
     index: i64,
 ) -> Result<()> {
-    let _ = transactions::delete_transaction(conn, index)?;
+    transactions::delete_transaction(conn, index)?;
     let index = trans_list
         .iter()
         .position(|t| t.id.unwrap() == index)
