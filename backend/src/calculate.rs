@@ -29,8 +29,6 @@ pub fn calc_avg_cost(transactions: &[Transaction], ticker: &str) -> Decimal {
         }
     }
 
-    println!("{}", total_cost);
-
     if buy == dec!(0.0) {
         return dec!(0.0);
     }
@@ -52,8 +50,6 @@ pub fn calc_unrealized_gain(
 ) -> Result<Decimal> {
     let market_value = calc_market_value(transactions, ticker, current_price)?;
     let cost_basis = calc_avg_cost(transactions, ticker);
-
-    println!("mv: {}, cb: {}", market_value, cost_basis);
 
     Ok(market_value - cost_basis)
 }
