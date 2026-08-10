@@ -74,8 +74,8 @@ pub fn calc_market_value(
     ticker: &str,
     current_price: Decimal,
 ) -> Result<Decimal> {
-    let (buy, _) = calc_shares(transactions, ticker);
-    let market_value = current_price * buy;
+    let (buy, sell) = calc_shares(transactions, ticker);
+    let market_value = current_price * (buy - sell);
 
     Ok(Decimal::try_from(market_value)?)
 }

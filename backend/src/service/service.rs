@@ -5,9 +5,11 @@ use rusqlite::Connection;
 use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 
+use crate::calculate::*;
 use crate::database::*;
 use crate::init::*;
 use crate::types::*;
+use crate::yahoo::*;
 
 /// Init db
 ///
@@ -32,6 +34,23 @@ pub fn calc_shares(transactions: &[Transaction], ticker: &str) -> (Decimal, Deci
         }
     }
     (buy, sell)
+}
+
+pub async fn get_market_value(
+    transactions: &[Transaction],
+    ticker: &str,
+    target_currency: Currency,
+) -> Result<Decimal> {
+    let current_price = get_current_asset_price(ticker).await?;
+    let asset_currency = get_asset_currency(ticker).await?;
+    let market_value = calc_market_value(transactions, ticker, current_price)?;
+
+    if target_currency != asset_currency {
+        let exchange_rate = get_exchange_rate(asset_currency, target_currency).await?;
+        return Ok(market_value * exchange_rate);
+    }
+
+    Ok(market_value)
 }
 
 pub fn db_add_transaction(conn: &Connection, tx: Transaction) -> Result<Transaction> {

@@ -5,10 +5,19 @@ use rusqlite::{
 };
 use rust_decimal::Decimal;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Currency {
     USD,
     EUR,
+}
+
+impl ToString for Currency {
+    fn to_string(&self) -> String {
+        match self {
+            Currency::USD => String::from("USD"),
+            Currency::EUR => String::from("EUR"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
