@@ -5,6 +5,8 @@ use rusqlite::{
 };
 use rust_decimal::Decimal;
 
+pub type Connection = rusqlite::Connection;
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Currency {
     USD,
