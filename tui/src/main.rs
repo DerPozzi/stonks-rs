@@ -52,15 +52,19 @@ async fn main() -> Result<()> {
         //     fees: dec!(0.07),
         // },
     ];
-    let current_value = stonks_rs::service::service::get_market_value(
+    let current_value_eur = stonks_rs::service::service::get_market_value(
         &test_transactions,
         "LMT",
-        stonks_rs::types::Currency::EUR,
+        Some(stonks_rs::types::Currency::EUR),
     )
     .await?;
+
+    let current_value_usd =
+        stonks_rs::service::service::get_market_value(&test_transactions, "LMT", None).await?;
+
     println!("Executed transactions: {:#?} ", test_transactions);
-    println!("Current value in EUR: {}", current_value);
-    // println!("Current value in EUR: {}", eur_value);
+    println!("Current value in EUR: {}", current_value_eur.round_dp(2));
+    println!("Current value in USD: {}", current_value_usd.round_dp(2));
 
     Ok(())
 }

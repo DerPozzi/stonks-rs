@@ -39,15 +39,17 @@ pub fn calc_shares(transactions: &[Transaction], ticker: &str) -> (Decimal, Deci
 pub async fn get_market_value(
     transactions: &[Transaction],
     ticker: &str,
-    target_currency: Currency,
+    target_currency: Option<Currency>,
 ) -> Result<Decimal> {
     let current_price = get_current_asset_price(ticker).await?;
     let asset_currency = get_asset_currency(ticker).await?;
     let market_value = calc_market_value(transactions, ticker, current_price)?;
 
-    if target_currency != asset_currency {
-        let exchange_rate = get_exchange_rate(asset_currency, target_currency).await?;
-        return Ok(market_value * exchange_rate);
+    if let Some(target_currency) = target_currency {
+        if target_currency != asset_currency {
+            let exchange_rate = get_exchange_rate(asset_currency, target_currency).await?;
+            return Ok(market_value * exchange_rate);
+        }
     }
 
     Ok(market_value)
