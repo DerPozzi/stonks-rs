@@ -60,7 +60,28 @@ fn unrealized_gain() -> anyhow::Result<()> {
 
 #[test]
 fn realized_gain() -> anyhow::Result<()> {
-    let transactions = sample_transactions();
+    let transactions = vec![
+        Transaction {
+            id: None,
+            ticker: "AMD".into(),
+            transaction_type: TransactionType::Buy,
+            trade_date: NaiveDate::from_ymd_opt(2026, 6, 27).unwrap(),
+            quantity: dec!(10),
+            price: dec!(100),
+            currency: Currency::EUR,
+            fees: dec!(1),
+        },
+        Transaction {
+            id: None,
+            ticker: "AMD".into(),
+            transaction_type: TransactionType::Sell,
+            trade_date: NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(),
+            quantity: dec!(5),
+            price: dec!(120),
+            currency: Currency::EUR,
+            fees: dec!(2),
+        },
+    ];
 
     let realized_gain = calc_realized_gains(&transactions, "AMD")?;
 
