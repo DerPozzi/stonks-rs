@@ -6,6 +6,10 @@ use rust_decimal::Decimal;
 use crate::database::*;
 use crate::types::*;
 
+pub fn get_all_transactions(db_conn: &Connection) -> Result<Vec<Transaction>> {
+    transactions::load_all_transactions_from_db(db_conn)
+}
+
 pub fn add_transaction_to_list(
     conn: &Connection,
     trans_list: &mut Vec<Transaction>,
