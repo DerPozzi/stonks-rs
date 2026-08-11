@@ -2,7 +2,7 @@ use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 
-use crate::{app::App, ui::UiAreas};
+use crate::app::App;
 
 pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
@@ -45,11 +45,10 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
             }
         }
 
-        KeyCode::Esc => {
-            if !app.input_text {
+        KeyCode::Esc
+            if !app.input_text => {
                 app.unfocus_page()
             }
-        }
         _ => {}
     };
 }
@@ -58,10 +57,10 @@ pub fn mouse_update(app: &mut App, mouse_event: MouseEvent) {
     let ui_areas = &app.ui_areas;
 
     if let MouseEventKind::Down(MouseButton::Left) = mouse_event.kind {
-        let position = (mouse_event.column, mouse_event.row);
+        let _position = (mouse_event.column, mouse_event.row);
 
-        if let Some(transaction_ui_areas) = &ui_areas.transaction_page {
-            if let Some(filters) = &transaction_ui_areas.filters {
+        if let Some(transaction_ui_areas) = &ui_areas.transaction_page
+            && let Some(_filters) = &transaction_ui_areas.filters {
                 // if filters.period.contains(position.into()) {
                 //     app.open_period_filter();
                 // } else if filters.transaction_type.contains(position.into()) {
@@ -70,6 +69,5 @@ pub fn mouse_update(app: &mut App, mouse_event: MouseEvent) {
                 //     app.open_asset_filter();
                 // }
             }
-        }
     }
 }

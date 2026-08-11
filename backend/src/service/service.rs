@@ -45,12 +45,11 @@ pub async fn get_market_value(
     let asset_currency = get_asset_currency(ticker).await?;
     let market_value = calc_market_value(transactions, ticker, current_price)?;
 
-    if let Some(target_currency) = target_currency {
-        if target_currency != asset_currency {
+    if let Some(target_currency) = target_currency
+        && target_currency != asset_currency {
             let exchange_rate = get_exchange_rate(asset_currency, target_currency).await?;
             return Ok(market_value * exchange_rate);
         }
-    }
 
     Ok(market_value)
 }

@@ -12,7 +12,7 @@ pub type CrosstermTerminal = ratatui::Terminal<ratatui::backend::CrosstermBacken
 use crate::{
     app::App,
     event::EventHandler,
-    ui::{self, UiAreas},
+    ui::{self},
 };
 /// Representation of a terminal user interface.
 ///

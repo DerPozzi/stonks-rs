@@ -1,7 +1,6 @@
 use anyhow::Result;
 use anyhow::anyhow;
 use rust_decimal::Decimal;
-use rust_decimal_macros::dec;
 use yahoo_finance_api::{self as yahoo, YResponse};
 
 use crate::types::Currency;
@@ -91,8 +90,8 @@ pub async fn get_asset_currency(ticker: &str) -> Result<Currency> {
         .clone();
 
     match currency.to_uppercase().as_str() {
-        "USD" => return Ok(Currency::USD),
-        "EUR" => return Ok(Currency::EUR),
-        _ => return Err(anyhow!("Unknown currency")),
+        "USD" => Ok(Currency::USD),
+        "EUR" => Ok(Currency::EUR),
+        _ => Err(anyhow!("Unknown currency")),
     }
 }

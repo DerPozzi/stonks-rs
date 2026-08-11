@@ -40,7 +40,7 @@ fn load_config(path: PathBuf) -> Result<Settings> {
         println!("{}", content);
 
         std::fs::write(&path, content)
-            .expect(format!("Failed to write config to {}", path.display()).as_str());
+            .unwrap_or_else(|_| panic!("Failed to write config to {}", path.display()));
     }
 
     let config = Config::builder().add_source(File::from(path)).build()?;

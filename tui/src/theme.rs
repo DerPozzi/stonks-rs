@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::Path;
 
 use ratatui::style::Color;
 use serde::Deserialize;
@@ -82,7 +82,7 @@ fn parse_color(value: &str) -> Result<Color> {
     Ok(Color::Rgb(r, g, b))
 }
 
-pub fn load_theme(config_dir: &PathBuf, name: Option<&str>) -> Result<Theme> {
+pub fn load_theme(config_dir: &Path, name: Option<&str>) -> Result<Theme> {
     let Some(name) = name else {
         return Ok(Theme::default());
     };
@@ -92,7 +92,7 @@ pub fn load_theme(config_dir: &PathBuf, name: Option<&str>) -> Result<Theme> {
     println!("{}", path.display());
 
     let content =
-        std::fs::read_to_string(&path).expect(format!("Failed to read theme '{name}'").as_str());
+        std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("Failed to read theme '{name}'"));
 
     let config: ThemeConfig = toml::from_str(&content)?;
 

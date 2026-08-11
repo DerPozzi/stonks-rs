@@ -129,8 +129,8 @@ fn get_transaction_type_count(tx: &[Transaction]) -> (u64, u64) {
 
     for t in tx.iter() {
         match t.transaction_type {
-            stonks_rs::types::TransactionType::Buy => buy_transactions = buy_transactions + 1,
-            stonks_rs::types::TransactionType::Sell => sell_transactions = sell_transactions + 1,
+            stonks_rs::types::TransactionType::Buy => buy_transactions += 1,
+            stonks_rs::types::TransactionType::Sell => sell_transactions += 1,
         }
     }
 
@@ -218,7 +218,7 @@ enum InputFocus {
     Table,
 }
 
-fn render_search(app: &App, frame: &mut Frame, area: Rect, label: &str, value: String) {
+fn render_search(app: &App, frame: &mut Frame, area: Rect, _label: &str, _value: String) {
     let border_color = if app.transaction_page.input_focus == InputFocus::Ticker {
         app.theme.primary
     } else {
