@@ -137,7 +137,7 @@ fn get_transaction_type_count(tx: &[Transaction]) -> (u64, u64) {
     (buy_transactions, sell_transactions)
 }
 
-pub fn render(app: &App, frame: &mut Frame, area: Rect) -> TransactionUiAreas {
+pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     let areas = Layout::vertical([
         Constraint::Percentage(33),
         Constraint::Percentage(34),
@@ -145,14 +145,12 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) -> TransactionUiAreas {
     ])
     .split(area);
 
-    let mut ui_areas = TransactionUiAreas::default();
-
     render_transaction_count(app, frame, areas[0]);
-    let filter_areas = render_filter_bar(app, frame, areas[1]);
-
-    ui_areas.filters = Some(filter_areas);
-
-    ui_areas
+    let transaction_filter_areas = render_filter_bar(app, frame, areas[1]);
+    let transaction_ui_areas = TransactionUiAreas {
+        filters: Some(transaction_filter_areas),
+    };
+    app.ui_areas.transaction_page = Some(transaction_ui_areas);
 }
 
 pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterAreas {
