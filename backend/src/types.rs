@@ -4,10 +4,11 @@ use rusqlite::{
     types::{FromSql, ToSqlOutput},
 };
 use rust_decimal::Decimal;
+use strum::EnumIter;
 
 pub type Connection = rusqlite::Connection;
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, EnumIter)]
 pub enum Currency {
     USD,
     EUR,
