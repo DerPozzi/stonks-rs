@@ -3,9 +3,9 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Paragraph},
+    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table},
 };
-use stonks_rs::types::Transaction;
+use stonks_rs::types::{Transaction, TransactionType};
 use strum::FromRepr;
 
 use crate::app::App;
@@ -147,7 +147,9 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     .split(area);
 
     render_transaction_count(app, frame, areas[0]);
+
     let transaction_filter_areas = render_filter_bar(app, frame, areas[1]);
+    render_table(app, frame, areas[2]);
     let transaction_ui_areas = TransactionUiAreas {
         filters: Some(transaction_filter_areas),
     };
@@ -205,7 +207,7 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         chunks[2],
         "[3] Ticker",
         app.transaction_page.filters.ticker_filter.to_string(),
-        InputFocus::Ticker,
+        app.transaction_page.input_focus == InputFocus::Ticker,
     );
 
     FilterAreas {
@@ -235,18 +237,23 @@ fn render_search(
     area: Rect,
     _label: &str,
     _value: String,
-    id: InputFocus,
+    selected: bool,
 ) {
-    let border_color = if app.transaction_page.input_focus == id {
-        app.theme.text
-    } else {
+    let border_color = if app.input_text && selected {
+        app.theme.primary
+    } else if selected {
         app.theme.secondary
+    } else {
+        app.theme.border
     };
 
     let input = Paragraph::new(app.transaction_page.filters.ticker_filter.as_str())
         .block(
             Block::default()
-                .title(" [3] Ticker ")
+                .title(Span::styled(
+                    " [3] Ticker ",
+                    Style::default().fg(app.theme.text),
+                ))
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(border_color)),
@@ -283,4 +290,72 @@ fn render_filter(
     ]);
 
     frame.render_widget(Paragraph::new(line), area);
+}
+
+fn render_table(app: &App, frame: &mut Frame, area: Rect) {
+    let header = Row::new(vec![
+        Cell::from("ID"),
+        Cell::from("Date"),
+        Cell::from("Ticker"),
+        Cell::from("Type"),
+        Cell::from("Quantity"),
+        Cell::from("Price"),
+        Cell::from("Currency"),
+        Cell::from("Fees"),
+    ])
+    .style(
+        Style::default()
+            .fg(app.theme.primary)
+            .add_modifier(Modifier::BOLD),
+    )
+    .bottom_margin(1);
+
+    let mut transactions = app.transactions.clone();
+    transactions.reverse();
+
+    let rows = transactions.iter().map(|tx| {
+        Row::new(vec![
+            Cell::from(tx.id.unwrap().to_string()),
+            Cell::from(tx.trade_date.to_string()),
+            Cell::from(tx.ticker.clone()),
+            Cell::from(Span::styled(
+                tx.transaction_type.to_string(),
+                Style::default().fg(if tx.transaction_type == TransactionType::Buy {
+                    app.theme.success
+                } else {
+                    app.theme.error
+                }),
+            )),
+            Cell::from(tx.quantity.to_string()),
+            Cell::from(tx.price.to_string()),
+            Cell::from(tx.currency.to_string()),
+            Cell::from(tx.fees.to_string()),
+        ])
+    });
+
+    let widths = [
+        Constraint::Length(12),
+        Constraint::Length(10),
+        Constraint::Length(8),
+        Constraint::Length(12),
+        Constraint::Length(12),
+        Constraint::Length(10),
+        Constraint::Length(10),
+    ];
+
+    let table = Table::new(rows, widths)
+        .header(header)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(app.theme.border))
+                .title(Span::styled(
+                    " [4] Transactions ",
+                    Style::default().fg(app.theme.text),
+                )),
+        )
+        .column_spacing(5);
+
+    frame.render_widget(table, area);
 }
