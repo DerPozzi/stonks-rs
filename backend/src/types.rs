@@ -23,7 +23,7 @@ impl ToString for Currency {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, EnumIter, PartialEq)]
 pub enum TransactionType {
     Buy,
     Sell,
