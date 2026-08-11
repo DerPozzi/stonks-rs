@@ -28,6 +28,15 @@ pub enum TransactionType {
     Sell,
 }
 
+impl ToString for TransactionType {
+    fn to_string(&self) -> String {
+        match self {
+            TransactionType::Buy => "Buy".to_string(),
+            TransactionType::Sell => "Sell".to_string(),
+        }
+    }
+}
+
 impl ToSql for TransactionType {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         let value = match self {
