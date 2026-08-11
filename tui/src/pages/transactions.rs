@@ -8,7 +8,13 @@ use ratatui::{
 use stonks_rs::types::{Transaction, TransactionType};
 use strum::FromRepr;
 
-use crate::app::App;
+use crate::{
+    app::App,
+    components::{
+        inputs::{input::render_input, select::render_select},
+        table::render_table,
+    },
+};
 
 /*
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -76,6 +82,8 @@ fn render_transaction_count(app: &App, frame: &mut Frame, area: Rect) {
     let total_count = app.transactions.len();
     let (buy_count, sell_count) = get_transaction_type_count(&app.transactions);
 
+    let border_style = app.theme.secondary;
+
     let areas = Layout::horizontal([
         Constraint::Percentage(33),
         Constraint::Percentage(34),
@@ -93,7 +101,7 @@ fn render_transaction_count(app: &App, frame: &mut Frame, area: Rect) {
                 ))
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(app.theme.primary)),
+                .border_style(Style::default().fg(border_style)),
         )
         .alignment(Alignment::Center);
 
@@ -104,7 +112,7 @@ fn render_transaction_count(app: &App, frame: &mut Frame, area: Rect) {
                 .title(Span::styled(" Buys ", Style::default().fg(app.theme.text)))
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(app.theme.primary)),
+                .border_style(Style::default().fg(border_style)),
         )
         .alignment(Alignment::Center);
 
@@ -115,7 +123,7 @@ fn render_transaction_count(app: &App, frame: &mut Frame, area: Rect) {
                 .title(Span::styled(" Sells ", Style::default().fg(app.theme.text)))
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(app.theme.primary)),
+                .border_style(Style::default().fg(border_style)),
         )
         .alignment(Alignment::Center);
 
@@ -149,151 +157,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     render_transaction_count(app, frame, areas[0]);
 
     let transaction_filter_areas = render_filter_bar(app, frame, areas[1]);
-    render_table(app, frame, areas[2]);
-    let transaction_ui_areas = TransactionUiAreas {
-        filters: Some(transaction_filter_areas),
-    };
-    app.ui_areas.transaction_page = Some(transaction_ui_areas);
-}
-
-pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterAreas {
-    let block = Block::default()
-        .title(Span::styled(
-            " Filters ",
-            Style::default().fg(app.theme.text),
-        ))
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(app.theme.primary));
-
-    let inner = block.inner(area);
-
-    frame.render_widget(block, area);
-
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(33),
-            Constraint::Percentage(33),
-            Constraint::Fill(1),
-        ])
-        .spacing(2)
-        .split(inner);
-
-    render_filter(
-        app,
-        frame,
-        chunks[0],
-        "[1] Period",
-        app.transaction_page.filters.period_filter.to_string(),
-        InputFocus::Period,
-    );
-
-    render_filter(
-        app,
-        frame,
-        chunks[1],
-        "[2] Type",
-        app.transaction_page
-            .filters
-            .transaction_type_filter
-            .to_string(),
-        InputFocus::TransactionType,
-    );
-
-    render_search(
-        app,
-        frame,
-        chunks[2],
-        "[3] Ticker",
-        app.transaction_page.filters.ticker_filter.to_string(),
-        app.transaction_page.input_focus == InputFocus::Ticker,
-    );
-
-    FilterAreas {
-        period: chunks[0],
-        transaction_type: chunks[1],
-        asset: chunks[2],
-    }
-}
-
-#[derive(Debug, Default, PartialEq, FromRepr)]
-enum InputFocus {
-    #[default]
-    None,
-    Period,
-    TransactionType,
-    Ticker,
-    Table,
-}
-
-pub fn handle_focus_switch(app: &mut App, number: usize) {
-    app.transaction_page.input_focus = InputFocus::from_repr(number).unwrap_or_default();
-}
-
-fn render_search(
-    app: &App,
-    frame: &mut Frame,
-    area: Rect,
-    _label: &str,
-    _value: String,
-    selected: bool,
-) {
-    let border_color = if app.input_text && selected {
-        app.theme.primary
-    } else if selected {
-        app.theme.secondary
-    } else {
-        app.theme.border
-    };
-
-    let input = Paragraph::new(app.transaction_page.filters.ticker_filter.as_str())
-        .block(
-            Block::default()
-                .title(Span::styled(
-                    " [3] Ticker ",
-                    Style::default().fg(app.theme.text),
-                ))
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(border_color)),
-        )
-        .style(Style::default().fg(app.theme.text));
-
-    frame.render_widget(input, area);
-}
-
-fn render_filter(
-    app: &App,
-    frame: &mut Frame,
-    area: Rect,
-    label: &str,
-    value: String,
-    id: InputFocus,
-) {
-    let line = Line::from(vec![
-        Span::styled(
-            format!("{label}: "),
-            Style::default().fg(if app.transaction_page.input_focus == id {
-                app.theme.text
-            } else {
-                app.theme.secondary
-            }),
-        ),
-        Span::styled(
-            value,
-            Style::default()
-                .fg(app.theme.primary)
-                .add_modifier(Modifier::BOLD),
-        ),
-        Span::styled(" ▼", Style::default().fg(app.theme.muted)),
-    ]);
-
-    frame.render_widget(Paragraph::new(line), area);
-}
-
-fn render_table(app: &App, frame: &mut Frame, area: Rect) {
-    let header = Row::new(vec![
+    let table_header = Row::new(vec![
         Cell::from("ID"),
         Cell::from("Date"),
         Cell::from("Ticker"),
@@ -313,7 +177,7 @@ fn render_table(app: &App, frame: &mut Frame, area: Rect) {
     let mut transactions = app.transactions.clone();
     transactions.reverse();
 
-    let rows = transactions.iter().map(|tx| {
+    let table_rows = transactions.iter().map(|tx| {
         Row::new(vec![
             Cell::from(tx.id.unwrap().to_string()),
             Cell::from(tx.trade_date.to_string()),
@@ -333,29 +197,92 @@ fn render_table(app: &App, frame: &mut Frame, area: Rect) {
         ])
     });
 
-    let widths = [
-        Constraint::Length(12),
-        Constraint::Length(10),
-        Constraint::Length(8),
-        Constraint::Length(12),
-        Constraint::Length(12),
-        Constraint::Length(10),
-        Constraint::Length(10),
-    ];
+    render_table(
+        app,
+        frame,
+        areas[2],
+        "[4] Transactions",
+        table_header,
+        table_rows,
+        app.transaction_page.input_focus == InputFocus::Table,
+    );
+    let transaction_ui_areas = TransactionUiAreas {
+        filters: Some(transaction_filter_areas),
+    };
+    app.ui_areas.transaction_page = Some(transaction_ui_areas);
+}
 
-    let table = Table::new(rows, widths)
-        .header(header)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(app.theme.border))
-                .title(Span::styled(
-                    " [4] Transactions ",
-                    Style::default().fg(app.theme.text),
-                )),
-        )
-        .column_spacing(5);
+pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterAreas {
+    let block = Block::default()
+        .title(Span::styled(
+            " Filters ",
+            Style::default().fg(app.theme.text),
+        ))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(app.theme.border));
 
-    frame.render_widget(table, area);
+    let inner = block.inner(area);
+
+    frame.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+            Constraint::Fill(1),
+        ])
+        .spacing(2)
+        .split(inner);
+
+    render_select(
+        app,
+        frame,
+        chunks[0],
+        "[1] Period",
+        app.transaction_page.filters.period_filter.to_string(),
+        app.transaction_page.input_focus == InputFocus::Period,
+    );
+
+    render_select(
+        app,
+        frame,
+        chunks[1],
+        "[2] Type",
+        app.transaction_page
+            .filters
+            .transaction_type_filter
+            .to_string(),
+        app.transaction_page.input_focus == InputFocus::TransactionType,
+    );
+
+    render_input(
+        app,
+        frame,
+        chunks[2],
+        "[3] Ticker",
+        &app.transaction_page.filters.ticker_filter.to_string(),
+        app.transaction_page.input_focus == InputFocus::Ticker,
+    );
+
+    FilterAreas {
+        period: chunks[0],
+        transaction_type: chunks[1],
+        asset: chunks[2],
+    }
+}
+
+#[derive(Debug, Default, PartialEq, FromRepr)]
+pub enum InputFocus {
+    #[default]
+    None,
+    Period,
+    TransactionType,
+    Ticker,
+    Table,
+}
+
+pub fn handle_focus(app: &mut App, number: usize) {
+    app.transaction_page.input_focus = InputFocus::from_repr(number).unwrap_or_default();
 }

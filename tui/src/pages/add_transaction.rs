@@ -9,7 +9,10 @@ use ratatui::{
 
 use strum::FromRepr;
 
-use crate::app::App;
+use crate::{
+    app::App,
+    components::inputs::{input::render_input, select::render_select},
+};
 
 use stonks_rs::types::{Currency, TransactionType};
 
@@ -232,9 +235,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     let cancel_area = buttons[1];
     let save_area = buttons[2];
 
-    let filled_out = true;
-
-    render_button(app, frame, save_area, "[s] Save", filled_out);
+    render_button(app, frame, save_area, "[s] Save", true, false);
 
     let create_transaction_areas = CreateTransactionAreas {
         ticker: row_1[0],
@@ -250,87 +251,20 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     };
 }
 
-fn render_input(app: &App, frame: &mut Frame, area: Rect, title: &str, value: &str, focused: bool) {
-    let border_color = if app.input_text && focused {
-        app.theme.primary
-    } else if focused {
-        app.theme.secondary
-    } else {
-        app.theme.border
-    };
-
-    let title_style = if focused {
-        Style::default()
-            .fg(app.theme.primary)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(app.theme.text)
-    };
-
-    let widget = Paragraph::new(value)
-        .block(
-            Block::default()
-                .title(Span::styled(format!(" {title} "), title_style))
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(border_color)),
-        )
-        .style(Style::default().fg(app.theme.text));
-
-    frame.render_widget(widget, area);
-}
-
-fn render_select(
+fn render_button(
     app: &App,
     frame: &mut Frame,
     area: Rect,
-    title: &str,
-    value: String,
-    focused: bool,
+    label: &str,
+    primary: bool,
+    disabled: bool,
 ) {
-    let border_color = if focused {
-        app.theme.primary
+    let (foreground, background) = if disabled {
+        (app.theme.background, app.theme.muted)
+    } else if primary {
+        (app.theme.text, app.theme.primary)
     } else {
-        app.theme.border
-    };
-
-    let title_style = if focused {
-        Style::default()
-            .fg(app.theme.primary)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(app.theme.text)
-    };
-
-    let line = Line::from(vec![
-        Span::styled(value, Style::default().fg(app.theme.text)),
-        Span::styled(" ▼", Style::default().fg(app.theme.muted)),
-    ]);
-
-    let widget = Paragraph::new(line)
-        .block(
-            Block::default()
-                .title(Span::styled(format!(" {title} "), title_style))
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(border_color)),
-        )
-        .alignment(Alignment::Left);
-
-    frame.render_widget(widget, area);
-}
-
-fn render_button(app: &App, frame: &mut Frame, area: Rect, label: &str, filled_out: bool) {
-    let (foreground, mut background) = if filled_out {
-        (app.theme.background, app.theme.primary)
-    } else {
-        (app.theme.text, app.theme.border)
-    };
-
-    let border_color = if filled_out {
-        app.theme.primary
-    } else {
-        app.theme.border
+        (app.theme.text, app.theme.secondary)
     };
 
     let button = Paragraph::new(label)
@@ -345,7 +279,7 @@ fn render_button(app: &App, frame: &mut Frame, area: Rect, label: &str, filled_o
             Block::default()
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(border_color)),
+                .border_style(Style::default().fg(foreground).bg(background)),
         );
 
     frame.render_widget(button, area);

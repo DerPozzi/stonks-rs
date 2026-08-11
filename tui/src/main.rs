@@ -8,6 +8,7 @@ use crate::{
 };
 
 mod app;
+mod components;
 mod event;
 mod pages;
 mod theme;
