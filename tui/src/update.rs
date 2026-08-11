@@ -3,7 +3,7 @@ use ratatui::crossterm::event::{
 };
 
 use crate::{
-    app::{App, Page},
+    app::{App, CurrentFocus, Page},
     pages::{self, add_transaction::InputField},
 };
 
@@ -103,8 +103,8 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
 
         // Esc
         KeyCode::Esc => {
-            if app.create_transaction.focused_field != InputField::None {
-                app.create_transaction.focused_field = InputField::None;
+            if app.focused_field != CurrentFocus::None {
+                app.focused_field = CurrentFocus::None;
             } else {
                 app.unfocus_page();
             }

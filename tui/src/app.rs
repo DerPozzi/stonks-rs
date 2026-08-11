@@ -22,7 +22,7 @@ use crate::{
 };
 
 #[derive(Debug, Serialize, Deserialize, Default)]
-struct Settings {
+pub struct Settings {
     app: AppConfig,
 }
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -98,7 +98,6 @@ impl std::fmt::Display for Page {
 pub enum Action {
     #[default]
     None,
-    Add,
     Edit(u64),
     Delete(u64),
     Hotkeys,
@@ -107,6 +106,16 @@ pub enum Action {
 #[derive(Debug, Default)]
 pub struct UiAreas {
     pub transaction_page: Option<TransactionUiAreas>,
+}
+
+pub trait FocusField: Copy + PartialEq {}
+
+#[derive(Debug, Default, PartialEq)]
+pub enum CurrentFocus {
+    #[default]
+    None,
+    TransactionPage(pages::transactions::InputFocus),
+    AddTransaction(pages::add_transaction::InputField),
 }
 
 #[derive(Debug)]
@@ -125,6 +134,7 @@ pub struct App {
 
     pub current_page_focused: bool,
     pub input_text: bool,
+    pub focused_field: CurrentFocus,
 
     pub create_transaction: CreateTransaction,
 }
@@ -146,6 +156,7 @@ impl Default for App {
             current_page_focused: false,
             input_text: false,
             create_transaction: CreateTransaction::default(),
+            focused_field: CurrentFocus::None,
         }
     }
 }
@@ -248,7 +259,7 @@ impl App {
             match &self.current_page {
                 Page::Dashboard => todo!(),
                 Page::Overview => todo!(),
-                Page::Transactions => crate::pages::transactions::handle_focus_switch(self, number),
+                Page::Transactions => crate::pages::transactions::handle_focus(self, number),
                 Page::Dividends => todo!(),
                 Page::Settings(page) => todo!(),
                 Page::AddTransaction => pages::add_transaction::handle_focus(self, number),
