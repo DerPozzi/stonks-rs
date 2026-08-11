@@ -16,10 +16,10 @@ fn bottom_title(app: &App) -> Line<'static> {
             let style = if page == app.current_page {
                 Style::default()
                     .fg(Color::Black)
-                    .bg(app.theme.accent)
+                    .bg(app.theme.secondary)
                     .add_modifier(Modifier::BOLD)
             } else {
-                Style::default().fg(app.theme.main)
+                Style::default().fg(app.theme.primary)
             };
 
             let separator = if index > 0 {
@@ -50,7 +50,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             app.transactions.len()
         ))
         .block(block)
-        .style(Style::default().fg(app.theme.main))
+        .style(Style::default().fg(app.theme.primary))
         .alignment(Alignment::Center),
         frame.area(),
     )

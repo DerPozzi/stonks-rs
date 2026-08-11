@@ -9,6 +9,7 @@ use crate::{
 
 mod app;
 mod event;
+mod theme;
 mod tui;
 mod ui;
 mod update;
