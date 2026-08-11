@@ -15,7 +15,7 @@ mod update;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut app = App::default();
+    let mut app = App::new();
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(std::io::stderr());
@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
     tui.enter()?;
 
     // Start the main loop.
-    while !app.exit {
+    while !app.should_quit {
         // Render the user interface.
         tui.draw(&mut app)?;
         // Handle events.

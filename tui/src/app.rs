@@ -166,16 +166,16 @@ impl Default for Page {
 }
 
 #[derive(Debug)]
-pub enum CurrentAction {
+pub enum Action {
     None,
     Add,
     Edit(u64),
     Delete(u64),
 }
 
-impl Default for CurrentAction {
+impl Default for Action {
     fn default() -> Self {
-        CurrentAction::None
+        Action::None
     }
 }
 
@@ -184,9 +184,9 @@ pub struct App {
     pub transactions: Vec<Transaction>,
     pub db_connection: Connection,
     pub settings: Settings,
-    pub exit: bool,
+    pub should_quit: bool,
     pub current_page: Page,
-    pub current_action: CurrentAction,
+    pub current_action: Action,
     pub theme: Theme,
 }
 
@@ -198,16 +198,16 @@ impl Default for App {
             transactions,
             db_connection,
             settings,
-            exit: false,
+            should_quit: false,
             current_page: Page::default(),
-            current_action: CurrentAction::default(),
+            current_action: Action::default(),
             theme,
         }
     }
 }
 
 impl App {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self::default()
     }
     /// Handles the tick event of the terminal.
@@ -215,10 +215,11 @@ impl App {
 
     /// Set should_quit to true to quit the application.
     pub fn quit(&mut self) {
-        self.exit = true;
+        self.should_quit = true;
     }
 
     pub fn next_page(&mut self) {
+        self.current_action = Action::None;
         self.current_page = match self.current_page {
             Page::Dashboard => Page::Overview,
             Page::Overview => Page::Transactions,
@@ -227,6 +228,7 @@ impl App {
         }
     }
     pub fn previous_page(&mut self) {
+        self.current_action = Action::None;
         self.current_page = match self.current_page {
             Page::Dashboard => Page::Dividends,
             Page::Overview => Page::Dashboard,
