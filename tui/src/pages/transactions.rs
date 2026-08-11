@@ -6,6 +6,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
 };
 use stonks_rs::types::Transaction;
+use strum::FromRepr;
 
 use crate::app::App;
 
@@ -87,7 +88,7 @@ fn render_transaction_count(app: &App, frame: &mut Frame, area: Rect) {
         .block(
             Block::default()
                 .title(Span::styled(
-                    "Total Transactions",
+                    " Total Transactions ",
                     Style::default().fg(app.theme.text),
                 ))
                 .borders(Borders::ALL)
@@ -100,7 +101,7 @@ fn render_transaction_count(app: &App, frame: &mut Frame, area: Rect) {
         .style(Style::default().fg(app.theme.success))
         .block(
             Block::default()
-                .title(Span::styled("Buys", Style::default().fg(app.theme.text)))
+                .title(Span::styled(" Buys ", Style::default().fg(app.theme.text)))
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(app.theme.primary)),
@@ -111,7 +112,7 @@ fn render_transaction_count(app: &App, frame: &mut Frame, area: Rect) {
         .style(Style::default().fg(app.theme.error))
         .block(
             Block::default()
-                .title(Span::styled("Sells", Style::default().fg(app.theme.text)))
+                .title(Span::styled(" Sells ", Style::default().fg(app.theme.text)))
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(app.theme.primary)),
@@ -139,9 +140,9 @@ fn get_transaction_type_count(tx: &[Transaction]) -> (u64, u64) {
 
 pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     let areas = Layout::vertical([
-        Constraint::Percentage(33),
-        Constraint::Percentage(34),
-        Constraint::Percentage(33),
+        Constraint::Percentage(10),
+        Constraint::Percentage(15),
+        Constraint::Fill(1),
     ])
     .split(area);
 
@@ -155,10 +156,13 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
 
 pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterAreas {
     let block = Block::default()
-        .title(" Filters ")
+        .title(Span::styled(
+            " Filters ",
+            Style::default().fg(app.theme.text),
+        ))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(app.theme.secondary));
+        .border_style(Style::default().fg(app.theme.primary));
 
     let inner = block.inner(area);
 
@@ -178,27 +182,30 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         app,
         frame,
         chunks[0],
-        "Period",
+        "[1] Period",
         app.transaction_page.filters.period_filter.to_string(),
+        InputFocus::Period,
     );
 
     render_filter(
         app,
         frame,
         chunks[1],
-        "Type",
+        "[2] Type",
         app.transaction_page
             .filters
             .transaction_type_filter
             .to_string(),
+        InputFocus::TransactionType,
     );
 
     render_search(
         app,
         frame,
         chunks[2],
-        "Ticker",
+        "[3] Ticker",
         app.transaction_page.filters.ticker_filter.to_string(),
+        InputFocus::Ticker,
     );
 
     FilterAreas {
@@ -208,19 +215,30 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
     }
 }
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, PartialEq, FromRepr)]
 enum InputFocus {
     #[default]
     None,
-    Ticker,
     Period,
     TransactionType,
+    Ticker,
     Table,
 }
 
-fn render_search(app: &App, frame: &mut Frame, area: Rect, _label: &str, _value: String) {
-    let border_color = if app.transaction_page.input_focus == InputFocus::Ticker {
-        app.theme.primary
+pub fn handle_focus_switch(app: &mut App, number: usize) {
+    app.transaction_page.input_focus = InputFocus::from_repr(number).unwrap_or_default();
+}
+
+fn render_search(
+    app: &App,
+    frame: &mut Frame,
+    area: Rect,
+    _label: &str,
+    _value: String,
+    id: InputFocus,
+) {
+    let border_color = if app.transaction_page.input_focus == id {
+        app.theme.text
     } else {
         app.theme.secondary
     };
@@ -228,7 +246,7 @@ fn render_search(app: &App, frame: &mut Frame, area: Rect, _label: &str, _value:
     let input = Paragraph::new(app.transaction_page.filters.ticker_filter.as_str())
         .block(
             Block::default()
-                .title(" Ticker ")
+                .title(" [3] Ticker ")
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(border_color)),
@@ -238,9 +256,23 @@ fn render_search(app: &App, frame: &mut Frame, area: Rect, _label: &str, _value:
     frame.render_widget(input, area);
 }
 
-fn render_filter(app: &App, frame: &mut Frame, area: Rect, label: &str, value: String) {
+fn render_filter(
+    app: &App,
+    frame: &mut Frame,
+    area: Rect,
+    label: &str,
+    value: String,
+    id: InputFocus,
+) {
     let line = Line::from(vec![
-        Span::styled(format!("{label}: "), Style::default().fg(app.theme.text)),
+        Span::styled(
+            format!("{label}: "),
+            Style::default().fg(if app.transaction_page.input_focus == id {
+                app.theme.text
+            } else {
+                app.theme.secondary
+            }),
+        ),
         Span::styled(
             value,
             Style::default()

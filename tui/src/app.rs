@@ -4,15 +4,20 @@ use ratatui::crossterm::event::MouseEvent;
 
 use anyhow::Result;
 use config::{Config, File};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use stonks_rs::{
     service::{helpers::get_all_transactions, service::init_db},
-    types::{Connection, Transaction},
+    types::{Connection, Currency, Transaction, TransactionType},
 };
-use strum::EnumIter;
+use strum::{EnumIter, IntoEnumIterator};
 
 use crate::{
-    pages::transactions::{TransactionPage, TransactionUiAreas},
+    pages::{
+        self,
+        add_transaction::CreateTransaction,
+        transactions::{TransactionPage, TransactionUiAreas},
+    },
     theme::{Theme, load_theme},
 };
 
@@ -72,6 +77,8 @@ pub enum Page {
     Dividends,
     #[strum(disabled)]
     Settings(Box<Page>),
+    #[strum(disabled)]
+    AddTransaction,
 }
 
 impl std::fmt::Display for Page {
@@ -82,6 +89,7 @@ impl std::fmt::Display for Page {
             Page::Transactions => write!(f, "Transactions"),
             Page::Dividends => write!(f, "Dividends"),
             Page::Settings(_) => write!(f, "Settings"),
+            Page::AddTransaction => write!(f, "Add a Transaction"),
         }
     }
 }
@@ -93,7 +101,6 @@ pub enum Action {
     Add,
     Edit(u64),
     Delete(u64),
-    Settings,
     Hotkeys,
 }
 
@@ -118,6 +125,8 @@ pub struct App {
 
     pub current_page_focused: bool,
     pub input_text: bool,
+
+    pub create_transaction: CreateTransaction,
 }
 
 impl Default for App {
@@ -136,6 +145,7 @@ impl Default for App {
             transaction_page: TransactionPage::default(),
             current_page_focused: false,
             input_text: false,
+            create_transaction: CreateTransaction::default(),
         }
     }
 }
@@ -194,11 +204,139 @@ impl App {
         // ...
     }
 
+    pub fn add_transaction(&mut self) {
+        self.current_page = Page::AddTransaction;
+        self.current_page_focused = true;
+    }
+
+    pub fn save_new_transaction(&mut self) -> Result<()> {
+        let tx = &self.create_transaction;
+
+        let new_tx = Transaction {
+            id: None,
+            ticker: tx.ticker.clone(),
+            transaction_type: tx.transaction_type,
+            trade_date: tx.trade_date,
+            quantity: Decimal::try_from(tx.quantity.parse::<f32>()?)?,
+            price: Decimal::try_from(tx.price.parse::<f32>()?)?,
+            currency: tx.currency,
+            fees: Decimal::try_from(tx.fees.parse::<f32>()?)?,
+        };
+
+        stonks_rs::service::helpers::add_transaction_to_list(
+            &self.db_connection,
+            &mut self.transactions,
+            new_tx,
+        )?;
+
+        self.current_page = Page::Transactions;
+
+        self.create_transaction = CreateTransaction::default();
+        Ok(())
+    }
+
     pub fn focus_page(&mut self) {
         self.current_page_focused = true;
     }
 
     pub fn unfocus_page(&mut self) {
         self.current_page_focused = false;
+    }
+
+    pub fn handle_layout_focus(&mut self, number: usize) {
+        if self.current_page_focused {
+            match &self.current_page {
+                Page::Dashboard => todo!(),
+                Page::Overview => todo!(),
+                Page::Transactions => crate::pages::transactions::handle_focus_switch(self, number),
+                Page::Dividends => todo!(),
+                Page::Settings(page) => todo!(),
+                Page::AddTransaction => pages::add_transaction::handle_focus(self, number),
+            }
+        }
+    }
+
+    pub fn input_char(&mut self, c: char) {
+        match self.create_transaction.focused_field {
+            pages::add_transaction::InputField::Ticker => {
+                self.create_transaction.ticker.push(c);
+            }
+
+            pages::add_transaction::InputField::TradeDate => {
+                self.create_transaction.trade_date_input.push(c);
+            }
+
+            pages::add_transaction::InputField::Quantity => {
+                self.create_transaction.quantity.push(c);
+            }
+
+            pages::add_transaction::InputField::Price => {
+                self.create_transaction.price.push(c);
+            }
+
+            pages::add_transaction::InputField::Fees => {
+                self.create_transaction.fees.push(c);
+            }
+
+            pages::add_transaction::InputField::Taxes => {
+                self.create_transaction.taxes.push(c);
+            }
+
+            pages::add_transaction::InputField::TransactionType
+            | pages::add_transaction::InputField::Currency
+            | pages::add_transaction::InputField::None => {}
+        }
+    }
+    pub fn input_backspace(&mut self) {
+        match self.create_transaction.focused_field {
+            pages::add_transaction::InputField::Ticker => {
+                self.create_transaction.ticker.pop();
+            }
+
+            pages::add_transaction::InputField::TradeDate => {
+                self.create_transaction.trade_date_input.pop();
+            }
+
+            pages::add_transaction::InputField::Quantity => {
+                self.create_transaction.quantity.pop();
+            }
+
+            pages::add_transaction::InputField::Price => {
+                self.create_transaction.price.pop();
+            }
+
+            pages::add_transaction::InputField::Fees => {
+                self.create_transaction.fees.pop();
+            }
+
+            pages::add_transaction::InputField::Taxes => {
+                self.create_transaction.taxes.pop();
+            }
+
+            pages::add_transaction::InputField::TransactionType
+            | pages::add_transaction::InputField::Currency
+            | pages::add_transaction::InputField::None => {}
+        }
+    }
+    pub fn cycle_transaction_type(&mut self) {
+        let trans_type: Vec<TransactionType> = TransactionType::iter().collect();
+
+        let current = self.create_transaction.transaction_type;
+
+        if let Some(index) = trans_type.iter().position(|c| *c == current) {
+            let next = (index + 1) % trans_type.len();
+            self.create_transaction.transaction_type = trans_type[next];
+        }
+    }
+
+    pub fn cycle_currency(&mut self) {
+        let currencies: Vec<Currency> = Currency::iter().collect();
+
+        let current = self.create_transaction.currency;
+
+        if let Some(index) = currencies.iter().position(|c| *c == current) {
+            let next = (index + 1) % currencies.len();
+            self.create_transaction.currency = currencies[next];
+        }
     }
 }

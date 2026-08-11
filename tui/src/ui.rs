@@ -52,6 +52,7 @@ fn render_page(app: &mut App, frame: &mut Frame, area: Rect) {
         Page::Overview => pages::overview::render(app, frame, area),
         Page::Dividends => pages::dividends::render(app, frame, area),
         Page::Settings(_page) => todo!(),
+        Page::AddTransaction => pages::add_transaction::render(app, frame, area),
     }
 }
 
