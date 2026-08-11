@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use ratatui::crossterm::event::MouseEvent;
+
 use anyhow::Result;
 use config::{Config, File};
 use serde::{Deserialize, Serialize};
@@ -9,7 +11,10 @@ use stonks_rs::{
 };
 use strum::EnumIter;
 
-use crate::theme::{Theme, load_theme};
+use crate::{
+    pages::transactions::{TransactionPage, TransactionUiAreas},
+    theme::{Theme, load_theme},
+};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 struct Settings {
@@ -58,13 +63,15 @@ fn init() -> Result<(Connection, Vec<Transaction>, Settings, Theme)> {
     Ok((conn, transactions, settings, theme))
 }
 
-#[derive(Debug, PartialEq, EnumIter, Default)]
+#[derive(Debug, PartialEq, EnumIter, Default, Clone)]
 pub enum Page {
     #[default]
     Dashboard,
     Overview,
     Transactions,
     Dividends,
+    #[strum(disabled)]
+    Settings(Box<Page>),
 }
 
 impl std::fmt::Display for Page {
@@ -74,6 +81,7 @@ impl std::fmt::Display for Page {
             Page::Overview => write!(f, "Overview"),
             Page::Transactions => write!(f, "Transactions"),
             Page::Dividends => write!(f, "Dividends"),
+            Page::Settings(_) => write!(f, "Settings"),
         }
     }
 }
@@ -85,6 +93,13 @@ pub enum Action {
     Add,
     Edit(u64),
     Delete(u64),
+    Settings,
+    Hotkeys,
+}
+
+#[derive(Debug, Default)]
+pub struct UiAreas {
+    pub transaction_page: Option<TransactionUiAreas>,
 }
 
 #[derive(Debug)]
@@ -96,6 +111,13 @@ pub struct App {
     pub current_page: Page,
     pub current_action: Action,
     pub theme: Theme,
+
+    pub ui_areas: UiAreas,
+
+    pub transaction_page: TransactionPage,
+
+    pub current_page_focused: bool,
+    pub input_text: bool,
 }
 
 impl Default for App {
@@ -110,6 +132,10 @@ impl Default for App {
             current_page: Page::default(),
             current_action: Action::default(),
             theme,
+            ui_areas: UiAreas::default(),
+            transaction_page: TransactionPage::default(),
+            current_page_focused: false,
+            input_text: false,
         }
     }
 }
@@ -131,8 +157,12 @@ impl App {
         self.current_page = match self.current_page {
             Page::Dashboard => Page::Overview,
             Page::Overview => Page::Transactions,
-            Page::Transactions => Page::Dividends,
+            Page::Transactions => {
+                self.transaction_page = TransactionPage::default();
+                Page::Dividends
+            }
             Page::Dividends => Page::Dashboard,
+            _ => Page::Dashboard,
         }
     }
     pub fn previous_page(&mut self) {
@@ -140,8 +170,35 @@ impl App {
         self.current_page = match self.current_page {
             Page::Dashboard => Page::Dividends,
             Page::Overview => Page::Dashboard,
-            Page::Transactions => Page::Overview,
+            Page::Transactions => {
+                self.transaction_page = TransactionPage::default();
+                Page::Overview
+            }
             Page::Dividends => Page::Transactions,
+            _ => Page::Dashboard,
         }
+    }
+
+    pub fn open_settings(&mut self) {
+        let current = self.current_page.clone();
+        self.current_page = Page::Settings(Box::new(current));
+    }
+    pub fn toggle_hotkeys(&mut self) {
+        self.current_action = Action::Hotkeys;
+    }
+
+    pub fn mouse_press(&mut self, event: MouseEvent) {
+        let _x = event.column;
+        let _y = event.row;
+
+        // ...
+    }
+
+    pub fn focus_page(&mut self) {
+        self.current_page_focused = true;
+    }
+
+    pub fn unfocus_page(&mut self) {
+        self.current_page_focused = false;
     }
 }

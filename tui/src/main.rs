@@ -9,6 +9,7 @@ use crate::{
 
 mod app;
 mod event;
+mod pages;
 mod theme;
 mod tui;
 mod ui;
@@ -32,8 +33,8 @@ async fn main() -> Result<()> {
         // Handle events.
         match tui.events.next()? {
             Event::Tick => {}
-            Event::Key(key_event) => update::update(&mut app, key_event),
-            Event::Mouse(_) => {}
+            Event::Key(key_event) => update::keyboard_update(&mut app, key_event),
+            Event::Mouse(mouse_event) => update::mouse_update(&mut app, mouse_event),
             Event::Resize(_, _) => {}
         };
     }
