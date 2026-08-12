@@ -4,38 +4,7 @@ use rust_decimal::Decimal;
 use yahoo_finance_api::{self as yahoo, YResponse};
 
 use crate::types::Currency;
-
-pub enum TimeFrame {
-    OneMinute,
-    OneHour,
-    OneDay,
-    OneWeek,
-    OneMonth,
-    ThreeMonth,
-    SixMonth,
-    YearToDate,
-    OneYear,
-    FiveYear,
-    Max,
-}
-
-impl ToString for TimeFrame {
-    fn to_string(&self) -> String {
-        match self {
-            TimeFrame::OneMinute => String::from("1m"),
-            TimeFrame::OneHour => String::from("1h"),
-            TimeFrame::OneDay => String::from("1d"),
-            TimeFrame::OneWeek => String::from("1w"),
-            TimeFrame::OneMonth => String::from("1m"),
-            TimeFrame::ThreeMonth => String::from("3m"),
-            TimeFrame::SixMonth => String::from("6m"),
-            TimeFrame::YearToDate => String::from("ytd"),
-            TimeFrame::OneYear => String::from("1y"),
-            TimeFrame::FiveYear => String::from("5y"),
-            TimeFrame::Max => String::from("max"),
-        }
-    }
-}
+use crate::types::TimeFrame;
 
 pub async fn get_current_asset_price(asset_ticker: &str) -> Result<Decimal> {
     let provider = yahoo::YahooConnector::new()?;

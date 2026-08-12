@@ -18,6 +18,42 @@ pub trait CycleEnum: Copy + PartialEq + IntoEnumIterator {
     }
 }
 
+#[derive(Debug, Default, EnumIter, Clone, Copy, PartialEq)]
+pub enum TimeFrame {
+    OneMinute,
+    OneHour,
+    OneDay,
+    OneWeek,
+    #[default]
+    OneMonth,
+    ThreeMonth,
+    SixMonth,
+    YearToDate,
+    OneYear,
+    FiveYear,
+    Max,
+}
+
+impl CycleEnum for TimeFrame {}
+
+impl ToString for TimeFrame {
+    fn to_string(&self) -> String {
+        match self {
+            TimeFrame::OneMinute => String::from("1m"),
+            TimeFrame::OneHour => String::from("1h"),
+            TimeFrame::OneDay => String::from("1d"),
+            TimeFrame::OneWeek => String::from("1w"),
+            TimeFrame::OneMonth => String::from("1m"),
+            TimeFrame::ThreeMonth => String::from("3m"),
+            TimeFrame::SixMonth => String::from("6m"),
+            TimeFrame::YearToDate => String::from("ytd"),
+            TimeFrame::OneYear => String::from("1y"),
+            TimeFrame::FiveYear => String::from("5y"),
+            TimeFrame::Max => String::from("max"),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone, Copy, EnumIter)]
 pub enum Currency {
     EUR,
@@ -57,8 +93,9 @@ impl ToString for Currency {
 
 impl CycleEnum for Currency {}
 
-#[derive(Debug, Clone, Copy, EnumIter, PartialEq)]
+#[derive(Debug, Clone, Default, Copy, EnumIter, PartialEq)]
 pub enum TransactionType {
+    #[default]
     Buy,
     Sell,
 }
