@@ -4,6 +4,7 @@ use rusqlite::{
     types::{FromSql, ToSqlOutput},
 };
 use rust_decimal::Decimal;
+use serde::{Deserialize, Deserializer, Serialize};
 use strum::{EnumIter, IntoEnumIterator};
 
 pub type Connection = rusqlite::Connection;
@@ -54,11 +55,23 @@ impl ToString for TimeFrame {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, EnumIter)]
+#[derive(PartialEq, Debug, Clone, Copy, Serialize, EnumIter)]
 pub enum Currency {
     EUR,
     USD,
 }
+
+impl<'de> Deserialize<'de> for Currency {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+
+        Currency::try_from(value).map_err(serde::de::Error::custom)
+    }
+}
+
 impl ToSql for Currency {
     fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         let value = match self {
@@ -87,6 +100,18 @@ impl ToString for Currency {
         match self {
             Currency::USD => String::from("USD"),
             Currency::EUR => String::from("EUR"),
+        }
+    }
+}
+
+impl TryFrom<String> for Currency {
+    type Error = anyhow::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.to_uppercase().as_str() {
+            "EUR" => Ok(Currency::EUR),
+            "USD" => Ok(Currency::USD),
+            _ => Err(anyhow::anyhow!("Unknown currency: {value}")),
         }
     }
 }

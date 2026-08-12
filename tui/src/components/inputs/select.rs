@@ -5,6 +5,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Paragraph},
 };
+use stonks_rs::types::CycleEnum;
 
 use crate::app::App;
 
@@ -16,8 +17,10 @@ pub fn render_select(
     value: String,
     focused: bool,
 ) {
-    let border_color = if focused {
+    let border_color = if focused && app.input_text {
         app.theme.primary
+    } else if focused {
+        app.theme.secondary
     } else {
         app.theme.border
     };
@@ -46,4 +49,8 @@ pub fn render_select(
         .alignment(Alignment::Left);
 
     frame.render_widget(widget, area);
+}
+
+pub fn cycle_enum<T: CycleEnum>(value: &mut T) {
+    *value = value.cycle();
 }

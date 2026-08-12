@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    time::{Duration, Instant},
+};
 
 use ratatui::crossterm::event::MouseEvent;
 
@@ -8,9 +11,10 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use stonks_rs::{
     service::{helpers::get_all_transactions, service::init_db},
-    types::{Connection, Currency, Transaction, TransactionType},
+    types::{Connection, Currency, Transaction},
 };
-use strum::{EnumIter, IntoEnumIterator};
+use strum::EnumIter;
+use tokio::sync::mpsc;
 
 use crate::{
     pages::{
@@ -19,15 +23,23 @@ use crate::{
         transactions::{TransactionPage, TransactionUiAreas},
     },
     theme::{Theme, load_theme},
+    update::{UpdateMessage, UpdateRequest},
 };
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Settings {
     app: AppConfig,
+    default: DefaultConfig,
 }
 #[derive(Debug, Serialize, Deserialize, Default)]
 struct AppConfig {
     theme: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+struct DefaultConfig {
+    currency: Option<Currency>,
+    refresh_rate: Option<u64>,
 }
 
 fn load_config(path: PathBuf) -> Result<Settings> {
@@ -36,8 +48,6 @@ fn load_config(path: PathBuf) -> Result<Settings> {
     }
     if !path.exists() {
         let defaults = Settings::default();
-
-        println!("{:?}", defaults);
 
         let content =
             toml::to_string_pretty(&defaults).expect("Failed to serialize default config");
@@ -108,14 +118,18 @@ pub struct UiAreas {
     pub transaction_page: Option<TransactionUiAreas>,
 }
 
-pub trait FocusField: Copy + PartialEq {}
-
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum CurrentFocus {
     #[default]
     None,
     TransactionPage(pages::transactions::InputFocus),
-    AddTransaction(pages::add_transaction::InputField),
+    AddTransaction(pages::add_transaction::InputFocus),
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
+pub struct Portfolio {
+    pub portvolio_value: Decimal,
+    pub invested_value: Decimal,
 }
 
 #[derive(Debug)]
@@ -128,6 +142,9 @@ pub struct App {
     pub current_action: Action,
     pub theme: Theme,
 
+    pub update_tx: Option<mpsc::UnboundedSender<UpdateRequest>>,
+    pub update_rx: Option<mpsc::UnboundedReceiver<UpdateMessage>>,
+
     pub ui_areas: UiAreas,
 
     pub transaction_page: TransactionPage,
@@ -137,6 +154,10 @@ pub struct App {
     pub focused_field: CurrentFocus,
 
     pub create_transaction: CreateTransaction,
+
+    pub portfolio_value: Decimal,
+
+    pub last_update: Option<Instant>,
 }
 
 impl Default for App {
@@ -157,13 +178,24 @@ impl Default for App {
             input_text: false,
             create_transaction: CreateTransaction::default(),
             focused_field: CurrentFocus::None,
+            portfolio_value: Decimal::default(),
+            last_update: None,
+            update_tx: None,
+            update_rx: None,
         }
     }
 }
 
 impl App {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(
+        update_tx: mpsc::UnboundedSender<UpdateRequest>,
+        update_rx: mpsc::UnboundedReceiver<UpdateMessage>,
+    ) -> Self {
+        Self {
+            update_tx: Some(update_tx),
+            update_rx: Some(update_rx),
+            ..Default::default()
+        }
     }
     /// Handles the tick event of the terminal.
     pub fn tick(&self) {}
@@ -254,100 +286,113 @@ impl App {
         self.current_page_focused = false;
     }
 
-    pub fn handle_layout_focus(&mut self, number: usize) {
-        if self.current_page_focused {
-            match &self.current_page {
-                Page::Dashboard => todo!(),
-                Page::Overview => todo!(),
-                Page::Transactions => crate::pages::transactions::handle_focus(self, number),
-                Page::Dividends => todo!(),
-                Page::Settings(page) => todo!(),
-                Page::AddTransaction => pages::add_transaction::handle_focus(self, number),
-            }
+    pub fn handle_layout_focus(&mut self, number: Option<usize>) {
+        if !self.current_page_focused {
+            return;
         }
+
+        let Some(number) = number else {
+            return;
+        };
+
+        self.focused_field = match self.current_page {
+            Page::Transactions => {
+                let Some(field) = pages::transactions::InputFocus::from_repr(number - 1) else {
+                    return;
+                };
+
+                CurrentFocus::TransactionPage(field)
+            }
+
+            Page::AddTransaction => {
+                let Some(field) = pages::add_transaction::InputFocus::from_repr(number - 1) else {
+                    return;
+                };
+
+                CurrentFocus::AddTransaction(field)
+            }
+
+            _ => return,
+        };
     }
 
     pub fn input_char(&mut self, c: char) {
-        match self.create_transaction.focused_field {
-            pages::add_transaction::InputField::Ticker => {
-                self.create_transaction.ticker.push(c);
+        match self.focused_field {
+            CurrentFocus::AddTransaction(field) => {
+                pages::add_transaction::handle_input_char(self, field, c)
             }
 
-            pages::add_transaction::InputField::TradeDate => {
-                self.create_transaction.trade_date_input.push(c);
+            CurrentFocus::TransactionPage(field) => {
+                pages::transactions::handle_input_char(self, field, c)
             }
 
-            pages::add_transaction::InputField::Quantity => {
-                self.create_transaction.quantity.push(c);
-            }
-
-            pages::add_transaction::InputField::Price => {
-                self.create_transaction.price.push(c);
-            }
-
-            pages::add_transaction::InputField::Fees => {
-                self.create_transaction.fees.push(c);
-            }
-
-            pages::add_transaction::InputField::Taxes => {
-                self.create_transaction.taxes.push(c);
-            }
-
-            pages::add_transaction::InputField::TransactionType
-            | pages::add_transaction::InputField::Currency
-            | pages::add_transaction::InputField::None => {}
+            _ => {}
         }
     }
     pub fn input_backspace(&mut self) {
-        match self.create_transaction.focused_field {
-            pages::add_transaction::InputField::Ticker => {
-                self.create_transaction.ticker.pop();
+        match self.focused_field {
+            CurrentFocus::AddTransaction(field) => {
+                pages::add_transaction::handle_input_backspace(self, field)
             }
 
-            pages::add_transaction::InputField::TradeDate => {
-                self.create_transaction.trade_date_input.pop();
+            CurrentFocus::TransactionPage(field) => {
+                pages::transactions::handle_input_backspace(self, field)
             }
-
-            pages::add_transaction::InputField::Quantity => {
-                self.create_transaction.quantity.pop();
-            }
-
-            pages::add_transaction::InputField::Price => {
-                self.create_transaction.price.pop();
-            }
-
-            pages::add_transaction::InputField::Fees => {
-                self.create_transaction.fees.pop();
-            }
-
-            pages::add_transaction::InputField::Taxes => {
-                self.create_transaction.taxes.pop();
-            }
-
-            pages::add_transaction::InputField::TransactionType
-            | pages::add_transaction::InputField::Currency
-            | pages::add_transaction::InputField::None => {}
+            _ => {}
         }
     }
-    pub fn cycle_transaction_type(&mut self) {
-        let trans_type: Vec<TransactionType> = TransactionType::iter().collect();
+    pub fn handle_selector_tab(&mut self) {
+        match self.focused_field {
+            CurrentFocus::TransactionPage(field) => {
+                pages::transactions::handle_selector_tab(self, field)
+            }
+            CurrentFocus::AddTransaction(field) => {
+                pages::add_transaction::handle_selector_tab(self, field)
+            }
 
-        let current = self.create_transaction.transaction_type;
-
-        if let Some(index) = trans_type.iter().position(|c| *c == current) {
-            let next = (index + 1) % trans_type.len();
-            self.create_transaction.transaction_type = trans_type[next];
+            _ => {}
         }
     }
 
-    pub fn cycle_currency(&mut self) {
-        let currencies: Vec<Currency> = Currency::iter().collect();
+    pub fn update(&mut self) {
+        if let Some(rx) = self.update_rx.as_mut() {
+            while let Ok(message) = rx.try_recv() {
+                match message {
+                    UpdateMessage::PortfolioValue(value) => {
+                        self.portfolio_value = value;
+                    }
 
-        let current = self.create_transaction.currency;
+                    // UpdateMessage::Ticker { ticker, data } => {
+                    //     self.handle_ticker_update(ticker, data);
+                    // }
+                    UpdateMessage::Error(error) => {
+                        eprintln!("Background update failed: {error}");
+                    }
 
-        if let Some(index) = currencies.iter().position(|c| *c == current) {
-            let next = (index + 1) % currencies.len();
-            self.create_transaction.currency = currencies[next];
+                    //TODO Fix update
+                    _ => {}
+                }
+            }
         }
+    }
+
+    pub async fn update_values(&mut self) -> Result<()> {
+        if let Some(last_update) = self.last_update {
+            if last_update.elapsed()
+                < Duration::from_secs(self.settings.default.refresh_rate.unwrap_or(30))
+            {
+                return Ok(());
+            }
+        }
+
+        self.last_update = Some(Instant::now());
+
+        self.portfolio_value = stonks_rs::service::service::get_portfolio_value(
+            &self.transactions,
+            self.settings.default.currency,
+        )
+        .await?;
+
+        Ok(())
     }
 }

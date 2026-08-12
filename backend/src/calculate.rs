@@ -7,8 +7,8 @@ use anyhow::Result;
 
 use crate::{
     service::service::calc_shares,
-    types::{Dividend, Transaction, TransactionType},
-    yahoo::get_current_asset_price,
+    types::{Currency, Dividend, Transaction, TransactionType},
+    yahoo::{get_asset_currency, get_current_asset_price, get_exchange_rate},
 };
 
 /*
@@ -107,14 +107,26 @@ pub fn calc_realized_gains(transactions: &[Transaction], ticker: &str) -> Result
  *
  */
 
-pub async fn calc_portfolio_value(transactions: &[Transaction]) -> Result<Decimal> {
+pub async fn calc_portfolio_value(
+    transactions: &[Transaction],
+    target_currency: Option<Currency>,
+) -> Result<Decimal> {
     let tickers: HashSet<String> = transactions.iter().map(|t| t.ticker.clone()).collect();
 
     let mut total_portfolio_value = dec!(0);
 
     for ticker in tickers {
         let current_price = get_current_asset_price(&ticker).await?;
+        let asset_currency = get_asset_currency(&ticker).await?;
+
         let market_value = calc_market_value(transactions, &ticker, current_price)?;
+
+        if let Some(target_currency) = target_currency
+            && target_currency != asset_currency
+        {
+            let exchange_rate = get_exchange_rate(asset_currency, target_currency).await?;
+            return Ok(market_value * exchange_rate);
+        }
 
         total_portfolio_value += market_value;
     }
@@ -128,7 +140,7 @@ pub async fn calc_portfolio_value(transactions: &[Transaction]) -> Result<Decima
 pub async fn calc_portfolio_weight(transactions: &[Transaction], ticker: &str) -> Result<Decimal> {
     let current_asset_price = get_current_asset_price(ticker).await?;
     let market_value = calc_market_value(transactions, ticker, current_asset_price)?;
-    let portfolio_value = calc_portfolio_value(transactions).await?;
+    let portfolio_value = calc_portfolio_value(transactions, Some(Currency::EUR)).await?;
 
     let portfolio_weight = market_value / portfolio_value * dec!(100);
     Ok(portfolio_weight)

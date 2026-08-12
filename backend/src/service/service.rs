@@ -46,12 +46,21 @@ pub async fn get_market_value(
     let market_value = calc_market_value(transactions, ticker, current_price)?;
 
     if let Some(target_currency) = target_currency
-        && target_currency != asset_currency {
-            let exchange_rate = get_exchange_rate(asset_currency, target_currency).await?;
-            return Ok(market_value * exchange_rate);
-        }
+        && target_currency != asset_currency
+    {
+        let exchange_rate = get_exchange_rate(asset_currency, target_currency).await?;
+        return Ok(market_value * exchange_rate);
+    }
 
     Ok(market_value)
+}
+
+pub async fn get_portfolio_value(
+    transactions: &[Transaction],
+    target_currency: Option<Currency>,
+) -> Result<Decimal> {
+    let portfolio_value = calc_portfolio_value(transactions, target_currency).await?;
+    Ok(portfolio_value)
 }
 
 pub fn db_add_transaction(conn: &Connection, tx: Transaction) -> Result<Transaction> {

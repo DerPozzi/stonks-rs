@@ -11,15 +11,17 @@ use strum::FromRepr;
 
 use crate::{
     app::App,
-    components::inputs::{input::render_input, select::render_select},
+    components::inputs::{
+        input::render_input,
+        select::{cycle_enum, render_select},
+    },
 };
 
 use stonks_rs::types::{Currency, TransactionType};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, FromRepr)]
-pub enum InputField {
+pub enum InputFocus {
     #[default]
-    None,
     Ticker,
     TransactionType,
     TradeDate,
@@ -47,7 +49,7 @@ pub struct CreateTransaction {
 
     pub currency: Currency,
 
-    pub focused_field: InputField,
+    pub focused_field: InputFocus,
 }
 impl Default for CreateTransaction {
     fn default() -> Self {
@@ -69,7 +71,7 @@ impl Default for CreateTransaction {
 
             currency: Currency::EUR,
 
-            focused_field: InputField::Ticker,
+            focused_field: InputFocus::Ticker,
         }
     }
 }
@@ -89,11 +91,19 @@ pub struct CreateTransactionAreas {
     pub save: Rect,
 }
 
-pub fn handle_focus(app: &mut App, number: usize) {
-    app.create_transaction.focused_field = InputField::from_repr(number).unwrap_or_default();
+fn is_currently_focused(current: Option<&InputFocus>, check: InputFocus) -> bool {
+    if let Some(focus) = current {
+        return *focus == check;
+    }
+    false
 }
 
 pub fn render(app: &App, frame: &mut Frame, area: Rect) {
+    let currently_focused = match &app.focused_field {
+        crate::app::CurrentFocus::AddTransaction(input_focus) => Some(input_focus),
+        _ => None,
+    };
+
     let block = Block::default()
         .title(Line::from(vec![
             Span::raw(" "),
@@ -156,7 +166,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         row_1[0],
         "[1] Ticker",
         &app.create_transaction.ticker,
-        app.create_transaction.focused_field == InputField::Ticker,
+        is_currently_focused(currently_focused, InputFocus::Ticker),
     );
 
     render_select(
@@ -165,7 +175,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         row_1[1],
         "[2] Type",
         app.create_transaction.transaction_type.to_string(),
-        app.create_transaction.focused_field == InputField::TransactionType,
+        is_currently_focused(currently_focused, InputFocus::TransactionType),
     );
 
     render_input(
@@ -174,7 +184,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         row_2[0],
         "[3] Trade Date",
         &app.create_transaction.trade_date_input.to_string(),
-        app.create_transaction.focused_field == InputField::TradeDate,
+        is_currently_focused(currently_focused, InputFocus::TradeDate),
     );
 
     render_input(
@@ -183,7 +193,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         row_2[1],
         "[4] Quantity",
         &app.create_transaction.quantity,
-        app.create_transaction.focused_field == InputField::Quantity,
+        is_currently_focused(currently_focused, InputFocus::Quantity),
     );
 
     render_input(
@@ -192,7 +202,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         row_3[0],
         "[5] Price",
         &app.create_transaction.price,
-        app.create_transaction.focused_field == InputField::Price,
+        is_currently_focused(currently_focused, InputFocus::Price),
     );
 
     render_select(
@@ -201,7 +211,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         row_3[1],
         "[6] Currency",
         app.create_transaction.currency.to_string(),
-        app.create_transaction.focused_field == InputField::Currency,
+        is_currently_focused(currently_focused, InputFocus::Currency),
     );
 
     render_input(
@@ -210,7 +220,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         row_4[0],
         "[7] Fees",
         &app.create_transaction.fees,
-        app.create_transaction.focused_field == InputField::Fees,
+        is_currently_focused(currently_focused, InputFocus::Fees),
     );
 
     render_input(
@@ -219,7 +229,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         row_4[1],
         "[8] Taxes",
         &app.create_transaction.taxes,
-        app.create_transaction.focused_field == InputField::Taxes,
+        is_currently_focused(currently_focused, InputFocus::Taxes),
     );
 
     let buttons = Layout::default()
@@ -234,6 +244,10 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
 
     let cancel_area = buttons[1];
     let save_area = buttons[2];
+
+    let debug = Paragraph::new(format!("Create Transaction: {:#?}", app.create_transaction));
+
+    frame.render_widget(debug, rows[4]);
 
     render_button(app, frame, save_area, "[s] Save", true, false);
 
@@ -283,4 +297,78 @@ fn render_button(
         );
 
     frame.render_widget(button, area);
+}
+
+pub fn handle_input_char(app: &mut App, field: InputFocus, c: char) {
+    match field {
+        InputFocus::Ticker => {
+            app.create_transaction.ticker.push(c);
+        }
+
+        InputFocus::TradeDate => {
+            app.create_transaction.trade_date_input.push(c);
+        }
+
+        InputFocus::Quantity => {
+            app.create_transaction.quantity.push(c);
+        }
+
+        InputFocus::Price => {
+            app.create_transaction.price.push(c);
+        }
+
+        InputFocus::Fees => {
+            app.create_transaction.fees.push(c);
+        }
+
+        InputFocus::Taxes => {
+            app.create_transaction.taxes.push(c);
+        }
+
+        InputFocus::TransactionType | InputFocus::Currency => {}
+    }
+}
+
+pub fn handle_input_backspace(app: &mut App, field: InputFocus) {
+    match field {
+        InputFocus::Ticker => {
+            app.create_transaction.ticker.pop();
+        }
+
+        InputFocus::TradeDate => {
+            app.create_transaction.trade_date_input.pop();
+        }
+
+        InputFocus::Quantity => {
+            app.create_transaction.quantity.pop();
+        }
+
+        InputFocus::Price => {
+            app.create_transaction.price.pop();
+        }
+
+        InputFocus::Fees => {
+            app.create_transaction.fees.pop();
+        }
+
+        InputFocus::Taxes => {
+            app.create_transaction.taxes.pop();
+        }
+
+        InputFocus::TransactionType | InputFocus::Currency => {}
+    }
+}
+
+pub fn handle_selector_tab(app: &mut App, field: InputFocus) {
+    match field {
+        InputFocus::TransactionType => {
+            cycle_enum(&mut app.create_transaction.transaction_type);
+        }
+
+        InputFocus::Currency => {
+            cycle_enum(&mut app.create_transaction.currency);
+        }
+
+        _ => {}
+    }
 }

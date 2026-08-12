@@ -2,16 +2,19 @@ use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
-    text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table},
+    text::Span,
+    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row},
 };
-use stonks_rs::types::{Transaction, TransactionType};
-use strum::FromRepr;
+use stonks_rs::types::{CycleEnum, Transaction, TransactionType};
+use strum::{EnumIter, FromRepr};
 
 use crate::{
     app::App,
     components::{
-        inputs::{input::render_input, select::render_select},
+        inputs::{
+            input::render_input,
+            select::{cycle_enum, render_select},
+        },
         table::render_table,
     },
 };
@@ -43,27 +46,38 @@ use crate::{
 └─────────────────────────────────────────────────────────────────────────────┘
 */
 #[derive(Debug, Default)]
-pub struct TransactionFiltersValues {
-    pub period_filter: String,
-    pub transaction_type_filter: String,
-    pub ticker_filter: String,
+pub struct TransactionFilters {
+    pub period: Period,
+    pub transaction_type: TransactionTypeFilter,
+    pub ticker: String,
 }
 
-#[derive(Debug, Default)]
-pub enum TransactionFilter {
+#[derive(Debug, Default, PartialEq, Copy, Clone, EnumIter)]
+pub enum TransactionTypeFilter {
     #[default]
-    None,
-    Period,
-    TransactionType,
+    All,
+    Buy,
+    Sell,
 }
+
+impl CycleEnum for TransactionTypeFilter {}
+
+impl ToString for TransactionTypeFilter {
+    fn to_string(&self) -> String {
+        match self {
+            TransactionTypeFilter::All => "All".to_string(),
+            TransactionTypeFilter::Buy => "Buy".to_string(),
+            TransactionTypeFilter::Sell => "Sell".to_string(),
+        }
+    }
+}
+
+type Period = stonks_rs::types::TimeFrame;
 
 #[derive(Debug, Default)]
 pub struct TransactionPage {
-    pub filters: TransactionFiltersValues,
-    pub open_filters: TransactionFilter,
+    pub filters: TransactionFilters,
     pub ui_areas: TransactionUiAreas,
-
-    input_focus: InputFocus,
 }
 
 #[derive(Debug)]
@@ -146,7 +160,18 @@ fn get_transaction_type_count(tx: &[Transaction]) -> (u64, u64) {
     (buy_transactions, sell_transactions)
 }
 
+fn is_currently_focused(current: Option<&InputFocus>, check: InputFocus) -> bool {
+    if let Some(focus) = current {
+        return *focus == check;
+    }
+    false
+}
+
 pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
+    let currently_focused = match &app.focused_field {
+        crate::app::CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
+        _ => None,
+    };
     let areas = Layout::vertical([
         Constraint::Percentage(10),
         Constraint::Percentage(15),
@@ -204,7 +229,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         "[4] Transactions",
         table_header,
         table_rows,
-        app.transaction_page.input_focus == InputFocus::Table,
+        is_currently_focused(currently_focused, InputFocus::Table),
     );
     let transaction_ui_areas = TransactionUiAreas {
         filters: Some(transaction_filter_areas),
@@ -213,6 +238,11 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
 }
 
 pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterAreas {
+    let currently_focused = match &app.focused_field {
+        crate::app::CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
+        _ => None,
+    };
+
     let block = Block::default()
         .title(Span::styled(
             " Filters ",
@@ -241,8 +271,8 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         frame,
         chunks[0],
         "[1] Period",
-        app.transaction_page.filters.period_filter.to_string(),
-        app.transaction_page.input_focus == InputFocus::Period,
+        app.transaction_page.filters.period.to_string(),
+        is_currently_focused(currently_focused, InputFocus::Period),
     );
 
     render_select(
@@ -250,11 +280,8 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         frame,
         chunks[1],
         "[2] Type",
-        app.transaction_page
-            .filters
-            .transaction_type_filter
-            .to_string(),
-        app.transaction_page.input_focus == InputFocus::TransactionType,
+        app.transaction_page.filters.transaction_type.to_string(),
+        is_currently_focused(currently_focused, InputFocus::TransactionType),
     );
 
     render_input(
@@ -262,8 +289,8 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         frame,
         chunks[2],
         "[3] Ticker",
-        &app.transaction_page.filters.ticker_filter.to_string(),
-        app.transaction_page.input_focus == InputFocus::Ticker,
+        &app.transaction_page.filters.ticker.to_string(),
+        is_currently_focused(currently_focused, InputFocus::Ticker),
     );
 
     FilterAreas {
@@ -273,16 +300,45 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
     }
 }
 
-#[derive(Debug, Default, PartialEq, FromRepr)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromRepr)]
 pub enum InputFocus {
     #[default]
-    None,
     Period,
     TransactionType,
     Ticker,
     Table,
 }
 
-pub fn handle_focus(app: &mut App, number: usize) {
-    app.transaction_page.input_focus = InputFocus::from_repr(number).unwrap_or_default();
+pub fn handle_input_char(app: &mut App, field: InputFocus, c: char) {
+    match field {
+        InputFocus::Ticker => {
+            app.transaction_page.filters.ticker.push(c);
+        }
+
+        InputFocus::TransactionType | InputFocus::Period | InputFocus::Table => {}
+    }
+}
+
+pub fn handle_input_backspace(app: &mut App, field: InputFocus) {
+    match field {
+        InputFocus::Ticker => {
+            app.transaction_page.filters.ticker.pop();
+        }
+
+        InputFocus::TransactionType | InputFocus::Period | InputFocus::Table => {}
+    }
+}
+
+pub fn handle_selector_tab(app: &mut App, field: InputFocus) {
+    match field {
+        InputFocus::TransactionType => {
+            cycle_enum(&mut app.transaction_page.filters.transaction_type);
+        }
+
+        InputFocus::Period => {
+            cycle_enum(&mut app.transaction_page.filters.period);
+        }
+
+        _ => {}
+    }
 }

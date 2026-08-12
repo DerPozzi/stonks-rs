@@ -1,11 +1,11 @@
 use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
+use rust_decimal::Decimal;
+use stonks_rs::types::{Currency, Transaction};
+use tokio::sync::mpsc;
 
-use crate::{
-    app::{App, CurrentFocus, Page},
-    pages::{self, add_transaction::InputField},
-};
+use crate::app::{App, CurrentFocus, Page, Portfolio};
 
 pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
     // ============================================================
@@ -24,6 +24,9 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
 
             KeyCode::Esc => {
                 app.input_text = false;
+            }
+            KeyCode::Tab => {
+                app.handle_selector_tab();
             }
 
             _ => {}
@@ -64,7 +67,7 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
         // Feld auswählen
         KeyCode::Char(c @ '0'..='9') => {
             let index = c.to_digit(10).unwrap_or(0) as usize;
-            app.handle_layout_focus(index);
+            app.handle_layout_focus(Some(index));
         }
 
         // Add Transaction
@@ -77,35 +80,37 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
             let _ = app.save_new_transaction();
         }
 
-        // Enter
-        KeyCode::Enter => match app.create_transaction.focused_field {
-            InputField::None => {
+        KeyCode::Enter => {
+            if app.input_text {
+                return;
+            }
+
+            if !app.current_page_focused {
                 app.focus_page();
+                return;
             }
 
-            InputField::Ticker
-            | InputField::Quantity
-            | InputField::Price
-            | InputField::Fees
-            | InputField::Taxes
-            | InputField::TradeDate => {
-                app.input_text = true;
-            }
+            match &app.focused_field {
+                CurrentFocus::None => {
+                    // Page ist fokussiert, aber noch kein Input-Feld
+                }
 
-            InputField::TransactionType => {
-                app.cycle_transaction_type();
-            }
+                CurrentFocus::TransactionPage(_) => {
+                    app.input_text = true;
+                }
 
-            InputField::Currency => {
-                app.cycle_currency();
+                CurrentFocus::AddTransaction(_) => {
+                    app.input_text = true;
+                }
             }
-        },
-
+        }
         // Esc
         KeyCode::Esc => {
-            if app.focused_field != CurrentFocus::None {
+            if app.input_text {
+                app.input_text = false;
+            } else if app.focused_field != CurrentFocus::None {
                 app.focused_field = CurrentFocus::None;
-            } else {
+            } else if app.current_page_focused {
                 app.unfocus_page();
             }
         }
@@ -132,4 +137,62 @@ pub fn mouse_update(app: &mut App, mouse_event: MouseEvent) {
             // }
         }
     }
+}
+
+/// Nachrichten vom App/UI-Thread zum Background-Task.
+#[derive(Debug)]
+pub enum UpdateRequest {
+    PortfolioValue(Vec<Transaction>, Currency),
+    Ticker(String),
+}
+
+#[derive(Debug)]
+pub struct TickerData {
+    pub market_value: Decimal,
+}
+
+/// Nachrichten vom Background-Task zurück zur App.
+#[derive(Debug)]
+pub enum UpdateMessage {
+    PortfolioValue(Decimal),
+
+    Ticker { ticker: String, data: TickerData },
+
+    Error(String),
+}
+
+pub fn start_update_task() -> (
+    mpsc::UnboundedSender<UpdateRequest>,
+    mpsc::UnboundedReceiver<UpdateMessage>,
+) {
+    let (request_tx, mut request_rx) = mpsc::unbounded_channel::<UpdateRequest>();
+
+    let (message_tx, message_rx) = mpsc::unbounded_channel::<UpdateMessage>();
+
+    tokio::spawn(async move {
+        while let Some(request) = request_rx.recv().await {
+            let result = match request {
+                UpdateRequest::PortfolioValue(tx, curr) => {
+                    match stonks_rs::service::service::get_portfolio_value(&tx, Some(curr)).await {
+                        Ok(portfolio) => message_tx.send(UpdateMessage::PortfolioValue(portfolio)),
+
+                        Err(error) => message_tx.send(UpdateMessage::Error(error.to_string())),
+                    }
+                } // UpdateRequest::Ticker(ticker) => match service::get_ticker(&ticker).await {
+                //     Ok(data) => message_tx.send(UpdateMessage::Ticker { ticker, data }),
+                //
+                //     Err(error) => message_tx.send(UpdateMessage::Error(error.to_string())),
+                // },
+                //
+                _ => todo!(),
+            };
+
+            // Receiver der App existiert nicht mehr.
+            if result.is_err() {
+                break;
+            }
+        }
+    });
+
+    (request_tx, message_rx)
 }

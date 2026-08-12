@@ -18,7 +18,8 @@ mod update;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut app = App::new();
+    let (update_tx, update_rx) = update::start_update_task();
+    let mut app = App::new(update_tx, update_rx);
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(std::io::stderr());
@@ -38,6 +39,8 @@ async fn main() -> Result<()> {
             Event::Mouse(mouse_event) => update::mouse_update(&mut app, mouse_event),
             Event::Resize(_, _) => {}
         };
+
+        app.update_values().await?;
     }
 
     // Exit the user interface.

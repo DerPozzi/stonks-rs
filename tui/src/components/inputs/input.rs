@@ -16,7 +16,7 @@ pub fn render_input(
     value: &str,
     focused: bool,
 ) {
-    let border_color = if app.input_text && focused {
+    let border_color = if focused && app.input_text {
         app.theme.primary
     } else if focused {
         app.theme.secondary
