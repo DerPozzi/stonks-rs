@@ -4,14 +4,46 @@ use rusqlite::{
     types::{FromSql, ToSqlOutput},
 };
 use rust_decimal::Decimal;
-use strum::EnumIter;
+use strum::{EnumIter, IntoEnumIterator};
 
 pub type Connection = rusqlite::Connection;
 
+pub trait CycleEnum: Copy + PartialEq + IntoEnumIterator {
+    fn cycle(self) -> Self {
+        let values: Vec<Self> = Self::iter().collect();
+
+        let index = values.iter().position(|value| *value == self).unwrap_or(0);
+
+        values[(index + 1) % values.len()]
+    }
+}
+
 #[derive(PartialEq, Debug, Clone, Copy, EnumIter)]
 pub enum Currency {
-    USD,
     EUR,
+    USD,
+}
+impl ToSql for Currency {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+        let value = match self {
+            Currency::USD => "usd",
+            Currency::EUR => "eur",
+        };
+        Ok(ToSqlOutput::from(value))
+    }
+}
+
+impl FromSql for Currency {
+    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
+        match value.as_str()? {
+            "usd" => Ok(Currency::USD),
+            "eur" => Ok(Currency::EUR),
+
+            _ => Err(rusqlite::types::FromSqlError::Other(
+                "Unknown currency".into(),
+            )),
+        }
+    }
 }
 
 impl ToString for Currency {
@@ -23,19 +55,12 @@ impl ToString for Currency {
     }
 }
 
+impl CycleEnum for Currency {}
+
 #[derive(Debug, Clone, Copy, EnumIter, PartialEq)]
 pub enum TransactionType {
     Buy,
     Sell,
-}
-
-impl ToString for TransactionType {
-    fn to_string(&self) -> String {
-        match self {
-            TransactionType::Buy => "Buy".to_string(),
-            TransactionType::Sell => "Sell".to_string(),
-        }
-    }
 }
 
 impl ToSql for TransactionType {
@@ -43,16 +68,6 @@ impl ToSql for TransactionType {
         let value = match self {
             TransactionType::Buy => "buy",
             TransactionType::Sell => "sell",
-        };
-        Ok(ToSqlOutput::from(value))
-    }
-}
-
-impl ToSql for Currency {
-    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
-        let value = match self {
-            Currency::USD => "usd",
-            Currency::EUR => "eur",
         };
         Ok(ToSqlOutput::from(value))
     }
@@ -71,18 +86,16 @@ impl FromSql for TransactionType {
     }
 }
 
-impl FromSql for Currency {
-    fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
-        match value.as_str()? {
-            "usd" => Ok(Currency::USD),
-            "eur" => Ok(Currency::EUR),
-
-            _ => Err(rusqlite::types::FromSqlError::Other(
-                "Unknown currency".into(),
-            )),
+impl ToString for TransactionType {
+    fn to_string(&self) -> String {
+        match self {
+            TransactionType::Buy => "Buy".to_string(),
+            TransactionType::Sell => "Sell".to_string(),
         }
     }
 }
+
+impl CycleEnum for TransactionType {}
 
 #[derive(Debug, Clone)]
 /// Represents a completed trade of an asset.
