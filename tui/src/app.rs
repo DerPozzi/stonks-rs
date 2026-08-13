@@ -1,5 +1,4 @@
 use std::{
-    fs::OpenOptions,
     path::PathBuf,
     time::{Duration, Instant},
 };
@@ -366,13 +365,12 @@ impl App {
     }
 
     pub fn request_updates(&mut self) {
-        if let Some(last_update) = self.last_update {
-            if last_update.elapsed()
+        if let Some(last_update) = self.last_update
+            && last_update.elapsed()
                 < Duration::from_secs(self.settings.default.refresh_rate.unwrap_or(30))
             {
                 return;
             }
-        }
 
         self.last_update = Some(Instant::now());
 

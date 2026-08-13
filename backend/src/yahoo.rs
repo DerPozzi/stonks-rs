@@ -16,9 +16,9 @@ pub async fn get_current_asset_price(asset_ticker: &str) -> Result<Decimal> {
             &TimeFrame::OneDay.to_string(),
         )
         .await?;
-    let quote: Quote;
-    match response.last_quote() {
-        Ok(q) => quote = q,
+    
+    let quote: Quote = match response.last_quote() {
+        Ok(q) => q,
         Err(e) => {
             return Err(anyhow::anyhow!(
                 "Problem looking at quotes for ticker {}: {}",
@@ -26,7 +26,7 @@ pub async fn get_current_asset_price(asset_ticker: &str) -> Result<Decimal> {
                 e
             ));
         }
-    }
+    };
 
     let close = Decimal::try_from(quote.close).unwrap();
 

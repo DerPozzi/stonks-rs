@@ -251,7 +251,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
 
     render_button(app, frame, save_area, "[s] Save", true, false);
 
-    let create_transaction_areas = CreateTransactionAreas {
+    let _create_transaction_areas = CreateTransactionAreas {
         ticker: row_1[0],
         transaction_type: row_1[1],
         trade_date: row_2[0],

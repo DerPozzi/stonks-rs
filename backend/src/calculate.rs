@@ -125,7 +125,7 @@ pub async fn calc_portfolio_value(
             && target_currency != asset_currency
         {
             let exchange_rate = get_exchange_rate(asset_currency, target_currency).await?;
-            market_value = market_value * exchange_rate;
+            market_value *= exchange_rate;
         }
 
         total_portfolio_value += market_value;
