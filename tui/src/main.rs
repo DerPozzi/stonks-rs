@@ -1,3 +1,5 @@
+use std::fs::OpenOptions;
+
 use anyhow::Result;
 use ratatui::{Terminal, backend::CrosstermBackend};
 
@@ -16,10 +18,30 @@ mod tui;
 mod ui;
 mod update;
 
+fn init_logger() -> Result<()> {
+    let home_path = dirs::home_dir().expect("Couldn't get users home dir");
+    let log_file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .truncate(true)
+        .open(format!(
+            "{}stonks.log",
+            home_path.join(".stonks-rs/").display()
+        ))?;
+
+    tracing_subscriber::fmt().with_writer(log_file).init();
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    init_logger()?;
     let (update_tx, update_rx) = update::start_update_task();
+
     let mut app = App::new(update_tx, update_rx);
+
+    tracing::info!("Initialising TUI");
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(std::io::stderr());
@@ -34,13 +56,11 @@ async fn main() -> Result<()> {
         tui.draw(&mut app)?;
         // Handle events.
         match tui.events.next()? {
-            Event::Tick => {}
+            Event::Tick => app.update(),
             Event::Key(key_event) => update::keyboard_update(&mut app, key_event),
             Event::Mouse(mouse_event) => update::mouse_update(&mut app, mouse_event),
             Event::Resize(_, _) => {}
         };
-
-        app.update_values().await?;
     }
 
     // Exit the user interface.
