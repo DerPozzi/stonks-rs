@@ -1,6 +1,7 @@
 use anyhow::Result;
 use anyhow::anyhow;
 use rust_decimal::Decimal;
+use yahoo_finance_api::Quote;
 use yahoo_finance_api::{self as yahoo, YResponse};
 
 use crate::types::Currency;
@@ -15,7 +16,17 @@ pub async fn get_current_asset_price(asset_ticker: &str) -> Result<Decimal> {
             &TimeFrame::OneDay.to_string(),
         )
         .await?;
-    let quote = response.last_quote().unwrap();
+    let quote: Quote;
+    match response.last_quote() {
+        Ok(q) => quote = q,
+        Err(e) => {
+            return Err(anyhow::anyhow!(
+                "Problem looking at quotes for ticker {}: {}",
+                asset_ticker,
+                e
+            ));
+        }
+    }
 
     let close = Decimal::try_from(quote.close).unwrap();
 

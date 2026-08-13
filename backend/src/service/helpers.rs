@@ -14,10 +14,10 @@ pub fn add_transaction_to_list(
     conn: &Connection,
     trans_list: &mut Vec<Transaction>,
     trans: Transaction,
-) -> Result<()> {
+) -> Result<Transaction> {
     let new_transaction = transactions::add_transaction(conn, trans)?;
-    trans_list.push(new_transaction);
-    Ok(())
+    trans_list.push(new_transaction.clone());
+    Ok(new_transaction)
 }
 
 pub fn delete_transaction_from_list(

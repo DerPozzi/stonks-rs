@@ -84,7 +84,7 @@ impl ToSql for Currency {
 
 impl FromSql for Currency {
     fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
-        match value.as_str()? {
+        match value.as_str()?.to_lowercase().as_str() {
             "usd" => Ok(Currency::USD),
             "eur" => Ok(Currency::EUR),
 
