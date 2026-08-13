@@ -30,7 +30,7 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Settings {
     app: AppConfig,
-    default: DefaultConfig,
+    pub default: DefaultConfig,
 }
 #[derive(Debug, Serialize, Deserialize, Default)]
 struct AppConfig {
@@ -38,8 +38,8 @@ struct AppConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
-struct DefaultConfig {
-    currency: Option<Currency>,
+pub struct DefaultConfig {
+    pub currency: Option<Currency>,
     refresh_rate: Option<u64>,
 }
 
@@ -365,19 +365,12 @@ impl App {
     }
 
     pub fn request_updates(&mut self) {
-        if let Some(last_update) = self.last_update
-            && last_update.elapsed()
-                < Duration::from_secs(self.settings.default.refresh_rate.unwrap_or(30))
-            {
-                return;
-            }
-
         self.last_update = Some(Instant::now());
 
         if let Some(tx) = &self.update_tx {
             let _ = tx.send(UpdateRequest::PortfolioValue(
                 self.transactions.clone(),
-                self.settings.default.currency.unwrap_or(Currency::EUR),
+                self.settings.default.currency.unwrap_or_default(),
             ));
         }
     }
@@ -407,6 +400,17 @@ impl App {
     }
 
     pub fn update(&mut self) {
+        if let Some(last_update) = self.last_update
+            && last_update.elapsed()
+                < Duration::from_secs(self.settings.default.refresh_rate.unwrap_or(30))
+        {
+            return;
+        }
+
+        match stonks_rs::service::helpers::get_all_transactions(&self.db_connection) {
+            Ok(tx) => self.transactions = tx,
+            Err(e) => tracing::error!("Failed to update transactions: {e}"),
+        }
         self.request_updates();
         self.process_updates();
     }
