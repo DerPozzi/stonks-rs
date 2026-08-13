@@ -1,3 +1,8 @@
+use std::cmp;
+
+use chrono::Datelike;
+
+use chrono::NaiveDate;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -5,7 +10,7 @@ use ratatui::{
     text::Span,
     widgets::{Block, BorderType, Borders, Cell, Paragraph, Row},
 };
-use stonks_rs::types::{CycleEnum, Transaction, TransactionType};
+use stonks_rs::types::{CycleEnum, TimeFrame, Transaction, TransactionType};
 use strum::{EnumIter, FromRepr};
 
 use crate::{
@@ -167,6 +172,40 @@ fn is_currently_focused(current: Option<&InputFocus>, check: InputFocus) -> bool
     false
 }
 
+fn today() -> NaiveDate {
+    chrono::Local::now().date_naive()
+}
+
+fn filter_transactions(app: &App, transactions: &mut Vec<Transaction>) {
+    let ticker = app.transaction_page.filters.ticker.to_lowercase();
+
+    transactions.retain(|tx| {
+        let matches_period = match app.transaction_page.filters.period {
+            TimeFrame::OneDay => tx.trade_date >= today() - chrono::Duration::days(1),
+            TimeFrame::OneWeek => tx.trade_date >= today() - chrono::Duration::days(7),
+            TimeFrame::OneMonth => tx.trade_date >= today() - chrono::Duration::days(30),
+            TimeFrame::ThreeMonth => tx.trade_date >= today() - chrono::Duration::days(90),
+            TimeFrame::SixMonth => tx.trade_date >= today() - chrono::Duration::days(180),
+            TimeFrame::YearToDate => tx.trade_date.year() == today().year(),
+            TimeFrame::OneYear => tx.trade_date >= today() - chrono::Duration::days(365),
+            TimeFrame::FiveYear => tx.trade_date >= today() - chrono::Duration::days(365 * 5),
+            TimeFrame::Max => true,
+
+            // Für die Transaktionstabelle vermutlich irrelevant:
+            TimeFrame::OneMinute | TimeFrame::OneHour => true,
+        };
+
+        let matches_type = match app.transaction_page.filters.transaction_type {
+            TransactionTypeFilter::All => true,
+            TransactionTypeFilter::Sell => tx.transaction_type == TransactionType::Sell,
+            TransactionTypeFilter::Buy => tx.transaction_type == TransactionType::Buy,
+        };
+        let matches_ticker = ticker.is_empty() || tx.ticker.to_lowercase().contains(&ticker);
+
+        matches_period && matches_type && matches_ticker
+    });
+}
+
 pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     let currently_focused = match &app.focused_field {
         crate::app::CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
@@ -200,7 +239,20 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     .bottom_margin(1);
 
     let mut transactions = app.transactions.clone();
+
+    transactions.sort_by(|a, b| {
+        if a.trade_date == b.trade_date {
+            cmp::Ordering::Equal
+        } else if a.trade_date < b.trade_date {
+            cmp::Ordering::Less
+        } else {
+            cmp::Ordering::Greater
+        }
+    });
+
     transactions.reverse();
+
+    filter_transactions(app, &mut transactions);
 
     let table_rows = transactions.iter().map(|tx| {
         Row::new(vec![
@@ -216,7 +268,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
                 }),
             )),
             Cell::from(tx.quantity.to_string()),
-            Cell::from(tx.price.to_string()),
+            Cell::from(tx.price.round_dp(2).to_string()),
             Cell::from(tx.currency.to_string()),
             Cell::from(tx.fees.to_string()),
         ])

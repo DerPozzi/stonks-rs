@@ -5,7 +5,7 @@ use rust_decimal::Decimal;
 use stonks_rs::types::{Currency, Transaction};
 use tokio::sync::mpsc;
 
-use crate::app::{App, CurrentFocus, Page, Portfolio};
+use crate::app::{App, CurrentFocus, Page};
 
 pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
     // ============================================================
@@ -169,29 +169,32 @@ pub fn start_update_task() -> (
 
     let (message_tx, message_rx) = mpsc::unbounded_channel::<UpdateMessage>();
 
+    tracing::info!("Starting update task");
+
     tokio::spawn(async move {
         while let Some(request) = request_rx.recv().await {
-            let result = match request {
+            match request {
                 UpdateRequest::PortfolioValue(tx, curr) => {
                     match stonks_rs::service::service::get_portfolio_value(&tx, Some(curr)).await {
-                        Ok(portfolio) => message_tx.send(UpdateMessage::PortfolioValue(portfolio)),
+                        Ok(portfolio) => {
+                            let _ = message_tx.send(UpdateMessage::PortfolioValue(portfolio));
+                        }
 
-                        Err(error) => message_tx.send(UpdateMessage::Error(error.to_string())),
+                        Err(error) => {
+                            tracing::error!("Failed to get portfolio value: {error}");
+
+                            let _ = message_tx.send(UpdateMessage::Error(error.to_string()));
+                        }
                     }
-                } // UpdateRequest::Ticker(ticker) => match service::get_ticker(&ticker).await {
-                //     Ok(data) => message_tx.send(UpdateMessage::Ticker { ticker, data }),
-                //
-                //     Err(error) => message_tx.send(UpdateMessage::Error(error.to_string())),
-                // },
-                //
-                _ => todo!(),
-            };
+                }
 
-            // Receiver der App existiert nicht mehr.
-            if result.is_err() {
-                break;
+                request => {
+                    tracing::warn!("Unhandled update request: {:?}", request);
+                }
             }
         }
+
+        tracing::info!("Update task stopped");
     });
 
     (request_tx, message_rx)

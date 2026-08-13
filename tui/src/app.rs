@@ -1,8 +1,10 @@
 use std::{
+    fs::OpenOptions,
     path::PathBuf,
     time::{Duration, Instant},
 };
 
+use chrono::NaiveDate;
 use ratatui::crossterm::event::MouseEvent;
 
 use anyhow::Result;
@@ -147,6 +149,8 @@ pub struct App {
 
     pub ui_areas: UiAreas,
 
+    pub error: String,
+
     pub transaction_page: TransactionPage,
 
     pub current_page_focused: bool,
@@ -163,6 +167,8 @@ pub struct App {
 impl Default for App {
     fn default() -> Self {
         let (db_connection, transactions, settings, theme) = init().expect("Failed to init app");
+
+        tracing::info!("App defaults have been loaded");
 
         Self {
             transactions,
@@ -182,6 +188,7 @@ impl Default for App {
             last_update: None,
             update_tx: None,
             update_rx: None,
+            error: String::new(),
         }
     }
 }
@@ -198,7 +205,7 @@ impl App {
         }
     }
     /// Handles the tick event of the terminal.
-    pub fn tick(&self) {}
+    pub fn _tick(&self) {}
 
     /// Set should_quit to true to quit the application.
     pub fn quit(&mut self) {
@@ -240,7 +247,7 @@ impl App {
         self.current_action = Action::Hotkeys;
     }
 
-    pub fn mouse_press(&mut self, event: MouseEvent) {
+    pub fn _mouse_press(&mut self, event: MouseEvent) {
         let _x = event.column;
         let _y = event.row;
 
@@ -259,20 +266,24 @@ impl App {
             id: None,
             ticker: tx.ticker.clone(),
             transaction_type: tx.transaction_type,
-            trade_date: tx.trade_date,
+            trade_date: NaiveDate::parse_from_str(&tx.trade_date_input, "%Y-%m-%d").unwrap(),
             quantity: Decimal::try_from(tx.quantity.parse::<f32>()?)?,
             price: Decimal::try_from(tx.price.parse::<f32>()?)?,
             currency: tx.currency,
             fees: Decimal::try_from(tx.fees.parse::<f32>()?)?,
         };
 
-        stonks_rs::service::helpers::add_transaction_to_list(
+        match stonks_rs::service::helpers::add_transaction_to_list(
             &self.db_connection,
             &mut self.transactions,
             new_tx,
-        )?;
+        ) {
+            Ok(t) => tracing::info!("Added new transaction with id: {}", t.id.unwrap()),
+            Err(e) => tracing::error!("An error occured, when creating a new transaction: {e}"),
+        };
 
         self.current_page = Page::Transactions;
+        self.focused_field = CurrentFocus::None;
 
         self.create_transaction = CreateTransaction::default();
         Ok(())
@@ -354,45 +365,51 @@ impl App {
         }
     }
 
-    pub fn update(&mut self) {
-        if let Some(rx) = self.update_rx.as_mut() {
-            while let Ok(message) = rx.try_recv() {
-                match message {
-                    UpdateMessage::PortfolioValue(value) => {
-                        self.portfolio_value = value;
-                    }
-
-                    // UpdateMessage::Ticker { ticker, data } => {
-                    //     self.handle_ticker_update(ticker, data);
-                    // }
-                    UpdateMessage::Error(error) => {
-                        eprintln!("Background update failed: {error}");
-                    }
-
-                    //TODO Fix update
-                    _ => {}
-                }
-            }
-        }
-    }
-
-    pub async fn update_values(&mut self) -> Result<()> {
+    pub fn request_updates(&mut self) {
         if let Some(last_update) = self.last_update {
             if last_update.elapsed()
                 < Duration::from_secs(self.settings.default.refresh_rate.unwrap_or(30))
             {
-                return Ok(());
+                return;
             }
         }
 
         self.last_update = Some(Instant::now());
 
-        self.portfolio_value = stonks_rs::service::service::get_portfolio_value(
-            &self.transactions,
-            self.settings.default.currency,
-        )
-        .await?;
+        if let Some(tx) = &self.update_tx {
+            let _ = tx.send(UpdateRequest::PortfolioValue(
+                self.transactions.clone(),
+                self.settings.default.currency.unwrap_or(Currency::EUR),
+            ));
+        }
+    }
 
-        Ok(())
+    pub fn process_updates(&mut self) {
+        let mut messages = Vec::new();
+
+        if let Some(rx) = self.update_rx.as_mut() {
+            while let Ok(message) = rx.try_recv() {
+                messages.push(message);
+            }
+        }
+
+        for message in messages {
+            match message {
+                UpdateMessage::PortfolioValue(value) => {
+                    self.portfolio_value = value;
+                }
+
+                UpdateMessage::Error(error) => {
+                    tracing::error!("Background update returned an error: {error}");
+                }
+
+                _ => {}
+            }
+        }
+    }
+
+    pub fn update(&mut self) {
+        self.request_updates();
+        self.process_updates();
     }
 }

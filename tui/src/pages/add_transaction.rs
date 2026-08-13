@@ -245,9 +245,9 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     let cancel_area = buttons[1];
     let save_area = buttons[2];
 
-    let debug = Paragraph::new(format!("Create Transaction: {:#?}", app.create_transaction));
+    let _debug = Paragraph::new(format!("Create Transaction: {:#?}", app.create_transaction));
 
-    frame.render_widget(debug, rows[4]);
+    // frame.render_widget(debug, rows[4]);
 
     render_button(app, frame, save_area, "[s] Save", true, false);
 
