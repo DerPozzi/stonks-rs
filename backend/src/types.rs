@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use chrono::NaiveDate;
 use rusqlite::{
     ToSql,
@@ -55,8 +57,9 @@ impl ToString for TimeFrame {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, Serialize, EnumIter)]
+#[derive(PartialEq, Default, Debug, Clone, Copy, Serialize, EnumIter)]
 pub enum Currency {
+    #[default]
     EUR,
     USD,
 }
@@ -95,11 +98,11 @@ impl FromSql for Currency {
     }
 }
 
-impl ToString for Currency {
-    fn to_string(&self) -> String {
+impl Display for Currency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Currency::USD => String::from("USD"),
-            Currency::EUR => String::from("EUR"),
+            Currency::EUR => write!(f, "EUR"),
+            Currency::USD => write!(f, "USD"),
         }
     }
 }
