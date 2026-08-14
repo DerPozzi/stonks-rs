@@ -36,11 +36,11 @@ pub fn calc_avg_cost(transactions: &[Transaction], ticker: &str) -> Decimal {
     total_cost / buy
 }
 
-pub fn calc_cost_basis(transactions: &[Transaction], ticker: &str) -> Result<Decimal> {
+pub fn calc_cost_basis(transactions: &[Transaction], ticker: &str) -> Decimal {
     let avg_cost = calc_avg_cost(transactions, ticker);
     let (num_shares, _) = calc_shares(transactions, ticker);
 
-    Ok(avg_cost * num_shares)
+    avg_cost * num_shares
 }
 
 pub fn calc_unrealized_gain(
@@ -49,18 +49,18 @@ pub fn calc_unrealized_gain(
     current_price: Decimal,
 ) -> Result<Decimal> {
     let market_value = calc_market_value(transactions, ticker, current_price)?;
-    let cost_basis = calc_avg_cost(transactions, ticker);
+    let cost_basis = calc_cost_basis(transactions, ticker);
 
     Ok(market_value - cost_basis)
 }
 
-pub fn calc_unrealized_gain_prec(
+pub fn calc_unrealized_gain_perc(
     transactions: &[Transaction],
     ticker: &str,
     current_price: Decimal,
 ) -> Result<Decimal> {
     let unrealized_gain = calc_unrealized_gain(transactions, ticker, current_price)?;
-    let cost_basis = calc_avg_cost(transactions, ticker);
+    let cost_basis = calc_cost_basis(transactions, ticker);
 
     Ok(unrealized_gain / cost_basis * dec!(100))
 }
