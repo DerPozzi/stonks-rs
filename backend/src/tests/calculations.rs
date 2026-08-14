@@ -54,7 +54,7 @@ fn unrealized_gain() -> anyhow::Result<()> {
 
     let unrealized_gain = calc_unrealized_gain(&transactions, "AMD", CURRENT_PRICE)?;
 
-    assert_eq!(unrealized_gain.round_dp(2), dec!(24.49));
+    assert_eq!(unrealized_gain.round_dp(2), dec!(59.02));
     Ok(())
 }
 

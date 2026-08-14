@@ -38,9 +38,9 @@ pub fn calc_avg_cost(transactions: &[Transaction], ticker: &str) -> Decimal {
 
 pub fn calc_cost_basis(transactions: &[Transaction], ticker: &str) -> Decimal {
     let avg_cost = calc_avg_cost(transactions, ticker);
-    let (num_shares, _) = calc_shares(transactions, ticker);
+    let (buy, sell) = calc_shares(transactions, ticker);
 
-    avg_cost * num_shares
+    avg_cost * (buy - sell)
 }
 
 pub fn calc_unrealized_gain(
@@ -73,7 +73,7 @@ pub fn calc_market_value(
     let (buy, sell) = calc_shares(transactions, ticker);
     let market_value = current_price * (buy - sell);
 
-    Ok(Decimal::try_from(market_value)?)
+    Ok(market_value)
 }
 
 /*

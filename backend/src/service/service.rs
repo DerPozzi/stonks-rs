@@ -86,11 +86,16 @@ pub async fn get_all_ticker_info(
             dec!(1)
         };
 
+        let (buy, sell) = calc_shares(tx, t);
+
+        if buy - sell == dec!(0) {
+            continue;
+        }
+
         let name = get_ticker_name(t.as_str()).await?;
         let market_value = calc_market_value(tx, t, current_price)? * exchange_rate;
         let avg_cost = calc_avg_cost(tx, t) * exchange_rate;
         let cost_basis = calc_cost_basis(tx, t) * exchange_rate;
-        let (buy, sell) = calc_shares(tx, t);
         let unrealized_gain = calc_unrealized_gain(tx, t, current_price)? * exchange_rate;
         let unrealized_gain_perc = calc_unrealized_gain_perc(tx, t, current_price)?;
         let realized_gain = calc_realized_gains(tx, t)? * exchange_rate;
