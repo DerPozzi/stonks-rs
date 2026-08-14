@@ -16,7 +16,7 @@ pub async fn get_current_asset_price(asset_ticker: &str) -> Result<Decimal> {
             &TimeFrame::OneDay.to_string(),
         )
         .await?;
-    
+
     let quote: Quote = match response.last_quote() {
         Ok(q) => q,
         Err(e) => {
@@ -74,4 +74,19 @@ pub async fn get_asset_currency(ticker: &str) -> Result<Currency> {
         "EUR" => Ok(Currency::EUR),
         _ => Err(anyhow!("Unknown currency")),
     }
+}
+
+pub async fn get_ticker_name(t: &str) -> Result<String> {
+    let provider = yahoo_finance_api::YahooConnector::new()?;
+
+    let response = provider.get_latest_quotes(t, "1d").await?;
+
+    let long_name = response.chart.result.as_ref().unwrap()[0]
+        .meta
+        .long_name
+        .as_ref()
+        .unwrap()
+        .clone();
+
+    Ok(long_name)
 }
