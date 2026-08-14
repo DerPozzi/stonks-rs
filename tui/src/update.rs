@@ -1,8 +1,10 @@
+use std::{cmp, collections::HashMap};
+
 use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 use rust_decimal::Decimal;
-use stonks_rs::types::{Currency, Transaction};
+use stonks_rs::types::{Currency, TickerData, Transaction};
 use tokio::sync::mpsc;
 
 use crate::app::{App, CurrentFocus, Page};
@@ -144,11 +146,7 @@ pub fn mouse_update(app: &mut App, mouse_event: MouseEvent) {
 pub enum UpdateRequest {
     PortfolioValue(Vec<Transaction>, Currency),
     Ticker(String),
-}
-
-#[derive(Debug)]
-pub struct TickerData {
-    pub market_value: Decimal,
+    AllTickers(Vec<Transaction>, Currency),
 }
 
 /// Nachrichten vom Background-Task zurück zur App.
@@ -157,6 +155,7 @@ pub enum UpdateMessage {
     PortfolioValue(Decimal),
 
     Ticker { ticker: String, data: TickerData },
+    AllTickers(Vec<TickerData>),
 
     Error(String),
 }
@@ -182,6 +181,32 @@ pub fn start_update_task() -> (
 
                         Err(error) => {
                             tracing::error!("Failed to get portfolio value: {error}");
+
+                            let _ = message_tx.send(UpdateMessage::Error(error.to_string()));
+                        }
+                    }
+                }
+
+                UpdateRequest::AllTickers(tx, curr) => {
+                    match stonks_rs::service::service::get_all_ticker_info(&tx, Some(curr)).await {
+                        Ok(mut ticker_data) => {
+                            ticker_data.sort_by(|a, b| {
+                                if a.ticker == b.ticker {
+                                    cmp::Ordering::Equal
+                                } else if a.ticker < b.ticker {
+                                    cmp::Ordering::Less
+                                } else {
+                                    cmp::Ordering::Greater
+                                }
+                            });
+
+                            let _ = message_tx
+                                .send(UpdateMessage::AllTickers(ticker_data))
+                                .unwrap();
+                        }
+
+                        Err(error) => {
+                            tracing::error!("Failed to get info for all tickers: {error}");
 
                             let _ = message_tx.send(UpdateMessage::Error(error.to_string()));
                         }

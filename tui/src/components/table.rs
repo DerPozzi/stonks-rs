@@ -1,9 +1,9 @@
 use ratatui::{
     Frame,
     layout::{Constraint, Rect},
-    style::Style,
+    style::{Modifier, Style},
     text::Span,
-    widgets::{Block, BorderType, Borders, Row, Table},
+    widgets::{Block, BorderType, Borders, Cell, Row, Table},
 };
 
 use crate::app::App;
@@ -13,24 +13,20 @@ pub fn render_table<'a, I>(
     frame: &mut Frame,
     area: Rect,
     label: &str,
-    header: Row<'a>,
+    header: Vec<Cell<'_>>,
     rows: I,
     focused: bool,
 ) where
     I: IntoIterator<Item = Row<'a>>,
 {
-    let mut transactions = app.transactions.clone();
-    transactions.reverse();
-
-    let widths = [
-        Constraint::Fill(1),
-        Constraint::Fill(1),
-        Constraint::Fill(1),
-        Constraint::Fill(1),
-        Constraint::Fill(1),
-        Constraint::Fill(1),
-        Constraint::Fill(1),
-    ];
+    let widths = vec![Constraint::Fill(1); header.len()];
+    let header = Row::new(header)
+        .style(
+            Style::default()
+                .fg(app.theme.primary)
+                .add_modifier(Modifier::BOLD),
+        )
+        .bottom_margin(1);
 
     let table = Table::new(rows, widths)
         .header(header)

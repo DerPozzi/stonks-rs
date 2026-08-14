@@ -12,7 +12,7 @@ use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use stonks_rs::{
     service::{helpers::get_all_transactions, service::init_db},
-    types::{Connection, Currency, Transaction},
+    types::{Connection, Currency, TickerData, Transaction},
 };
 use strum::EnumIter;
 use tokio::sync::mpsc;
@@ -39,7 +39,7 @@ struct AppConfig {
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct DefaultConfig {
-    pub currency: Option<Currency>,
+    pub currency: Currency,
     refresh_rate: Option<u64>,
 }
 
@@ -127,10 +127,10 @@ pub enum CurrentFocus {
     AddTransaction(pages::add_transaction::InputFocus),
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default)]
 pub struct Portfolio {
-    pub portvolio_value: Decimal,
-    pub invested_value: Decimal,
+    pub value: Decimal,
+    pub ticker_info: Vec<TickerData>,
 }
 
 #[derive(Debug)]
@@ -158,7 +158,7 @@ pub struct App {
 
     pub create_transaction: CreateTransaction,
 
-    pub portfolio_value: Decimal,
+    pub portfolio: Portfolio,
 
     pub last_update: Option<Instant>,
 }
@@ -183,7 +183,7 @@ impl Default for App {
             input_text: false,
             create_transaction: CreateTransaction::default(),
             focused_field: CurrentFocus::None,
-            portfolio_value: Decimal::default(),
+            portfolio: Portfolio::default(),
             last_update: None,
             update_tx: None,
             update_rx: None,
@@ -370,7 +370,12 @@ impl App {
         if let Some(tx) = &self.update_tx {
             let _ = tx.send(UpdateRequest::PortfolioValue(
                 self.transactions.clone(),
-                self.settings.default.currency.unwrap_or_default(),
+                self.settings.default.currency,
+            ));
+
+            let _ = tx.send(UpdateRequest::AllTickers(
+                self.transactions.clone(),
+                self.settings.default.currency,
             ));
         }
     }
@@ -387,12 +392,14 @@ impl App {
         for message in messages {
             match message {
                 UpdateMessage::PortfolioValue(value) => {
-                    self.portfolio_value = value;
+                    self.portfolio.value = value;
                 }
 
                 UpdateMessage::Error(error) => {
                     tracing::error!("Background update returned an error: {error}");
                 }
+
+                UpdateMessage::AllTickers(ti) => self.portfolio.ticker_info = ti,
 
                 _ => {}
             }

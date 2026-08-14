@@ -221,7 +221,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     render_transaction_count(app, frame, areas[0]);
 
     let transaction_filter_areas = render_filter_bar(app, frame, areas[1]);
-    let table_header = Row::new(vec![
+    let table_header = vec![
         Cell::from("ID"),
         Cell::from("Date"),
         Cell::from("Ticker"),
@@ -230,14 +230,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         Cell::from("Price"),
         Cell::from("Currency"),
         Cell::from("Fees"),
-    ])
-    .style(
-        Style::default()
-            .fg(app.theme.primary)
-            .add_modifier(Modifier::BOLD),
-    )
-    .bottom_margin(1);
-
+    ];
     let mut transactions = app.transactions.clone();
 
     transactions.sort_by(|a, b| {
