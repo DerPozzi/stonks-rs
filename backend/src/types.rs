@@ -250,3 +250,17 @@ pub struct Dividend {
     /// not necessarily have to match the asset's native/quote currency.
     pub currency: Currency,
 }
+
+#[derive(Debug)]
+pub struct TickerData {
+    pub name: String,
+    pub ticker: String,
+    pub current_price: Decimal,
+    pub cost_basis: Decimal,
+    pub market_value: Decimal,
+    pub total_shares: Decimal,
+    pub avg_cost: Decimal,
+    pub unrealized_gain: Decimal,
+    pub unrealized_gain_perc: Decimal,
+    pub realized_gain: Decimal,
+}
