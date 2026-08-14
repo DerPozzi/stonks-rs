@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -45,14 +47,13 @@ pub async fn get_market_value(
     let asset_currency = get_asset_currency(ticker).await?;
     let market_value = calc_market_value(transactions, ticker, current_price)?;
 
-    if let Some(target_currency) = target_currency
-        && target_currency != asset_currency
-    {
-        let exchange_rate = get_exchange_rate(asset_currency, target_currency).await?;
-        return Ok(market_value * exchange_rate);
-    }
+    let exchange_rate = if let Some(target_currency) = target_currency {
+        get_exchange_rate(asset_currency, target_currency).await?
+    } else {
+        dec!(1)
+    };
 
-    Ok(market_value)
+    Ok(market_value * exchange_rate)
 }
 
 pub async fn get_portfolio_value(
@@ -65,4 +66,48 @@ pub async fn get_portfolio_value(
 
 pub fn db_add_transaction(conn: &Connection, tx: Transaction) -> Result<Transaction> {
     transactions::add_transaction(conn, tx)
+}
+
+pub async fn get_all_ticker_info(
+    tx: &[Transaction],
+    curr: Option<Currency>,
+) -> Result<Vec<TickerData>> {
+    let tickers: HashSet<String> = tx.iter().map(|t| t.ticker.clone()).collect();
+
+    let mut ticker_data = Vec::new();
+
+    for t in tickers.iter() {
+        let current_price = get_current_asset_price(t).await?;
+        let asset_currency = get_asset_currency(t).await?;
+
+        let exchange_rate = if let Some(t) = curr {
+            get_exchange_rate(asset_currency, t).await?
+        } else {
+            dec!(1)
+        };
+
+        let name = get_ticker_name(t.as_str()).await?;
+        let market_value = calc_market_value(tx, t, current_price)? * exchange_rate;
+        let avg_cost = calc_avg_cost(tx, t) * exchange_rate;
+        let cost_basis = calc_cost_basis(tx, t) * exchange_rate;
+        let (buy, sell) = calc_shares(tx, t);
+        let unrealized_gain = calc_unrealized_gain(tx, t, current_price)? * exchange_rate;
+        let unrealized_gain_perc = calc_unrealized_gain_perc(tx, t, current_price)?;
+        let realized_gain = calc_realized_gains(tx, t)? * exchange_rate;
+
+        ticker_data.push(TickerData {
+            name,
+            ticker: t.clone(),
+            cost_basis,
+            current_price: current_price * exchange_rate,
+            market_value,
+            total_shares: buy - sell,
+            avg_cost,
+            unrealized_gain,
+            unrealized_gain_perc,
+            realized_gain,
+        });
+    }
+
+    Ok(ticker_data)
 }
