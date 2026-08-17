@@ -18,9 +18,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         Cell::from("Invested"),
         Cell::from("Market Value"),
         Cell::from("Unrealized Gain"),
-        Cell::from("Unrealized Gain %"),
-        Cell::from("Amount"),
-        Cell::from("Avg. Cost"),
+        Cell::from("Amount @ price"),
         Cell::from("Current price"),
     ];
 
@@ -52,19 +50,16 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
                 )),
                 Cell::from(Span::styled(
                     format!(
-                        "{} {}",
+                        "{} {} | {} %",
                         tx.unrealized_gain.round_dp(2).to_string(),
-                        app.settings.default.currency
+                        app.settings.default.currency,
+                        tx.unrealized_gain_perc.round_dp(2).to_string()
                     ),
                     gain_style,
                 )),
-                Cell::from(Span::styled(
-                    format!("{} %", tx.unrealized_gain_perc.round_dp(2).to_string()),
-                    gain_style,
-                )),
-                Cell::from(tx.total_shares.round_dp(2).to_string()),
                 Cell::from(format!(
-                    "{} {}",
+                    "{} @ {} {}",
+                    tx.total_shares.round_dp(2).to_string(),
                     tx.avg_cost.round_dp(2).to_string(),
                     app.settings.default.currency
                 )),
