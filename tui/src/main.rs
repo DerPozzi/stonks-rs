@@ -20,6 +20,11 @@ mod update;
 
 fn init_logger() -> Result<()> {
     let home_path = dirs::home_dir().expect("Couldn't get users home dir");
+
+    if let Some(parent) = home_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
     let log_file = OpenOptions::new()
         .create(true)
         .write(true)
