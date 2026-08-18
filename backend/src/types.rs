@@ -251,7 +251,7 @@ pub struct Dividend {
     pub currency: Currency,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TickerData {
     pub name: String,
     pub ticker: String,
