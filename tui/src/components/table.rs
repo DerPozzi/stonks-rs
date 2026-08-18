@@ -8,7 +8,7 @@ use ratatui::{
 
 use crate::app::App;
 
-pub fn render_table<'a, I>(
+pub fn render<'a, I>(
     app: &App,
     frame: &mut Frame,
     area: Rect,

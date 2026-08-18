@@ -13,16 +13,7 @@ use ratatui::{
 use stonks_rs::types::{CycleEnum, TimeFrame, Transaction, TransactionType};
 use strum::{EnumIter, FromRepr};
 
-use crate::{
-    app::App,
-    components::{
-        inputs::{
-            input::render_input,
-            select::{cycle_enum, render_select},
-        },
-        table::render_table,
-    },
-};
+use crate::{app::App, components::inputs::*, components::*};
 
 /*
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -101,8 +92,6 @@ fn render_transaction_count(app: &App, frame: &mut Frame, area: Rect) {
     let total_count = app.transactions.len();
     let (buy_count, sell_count) = get_transaction_type_count(&app.transactions);
 
-    let border_style = app.theme.secondary;
-
     let areas = Layout::horizontal([
         Constraint::Percentage(33),
         Constraint::Percentage(34),
@@ -110,45 +99,31 @@ fn render_transaction_count(app: &App, frame: &mut Frame, area: Rect) {
     ])
     .split(area);
 
-    let total = Paragraph::new(total_count.to_string())
-        .style(Style::default().fg(app.theme.primary))
-        .block(
-            Block::default()
-                .title(Span::styled(
-                    " Total Transactions ",
-                    Style::default().fg(app.theme.text),
-                ))
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(border_style)),
-        )
-        .alignment(Alignment::Center);
+    card::render(
+        frame,
+        areas[0],
+        app,
+        " Total Transactions ",
+        total_count.to_string(),
+        None,
+    );
 
-    let buy = Paragraph::new(buy_count.to_string())
-        .style(Style::default().fg(app.theme.success))
-        .block(
-            Block::default()
-                .title(Span::styled(" Buys ", Style::default().fg(app.theme.text)))
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(border_style)),
-        )
-        .alignment(Alignment::Center);
-
-    let sell = Paragraph::new(sell_count.to_string())
-        .style(Style::default().fg(app.theme.error))
-        .block(
-            Block::default()
-                .title(Span::styled(" Sells ", Style::default().fg(app.theme.text)))
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(border_style)),
-        )
-        .alignment(Alignment::Center);
-
-    frame.render_widget(total, areas[0]);
-    frame.render_widget(buy, areas[1]);
-    frame.render_widget(sell, areas[2]);
+    card::render(
+        frame,
+        areas[1],
+        app,
+        " Buys ",
+        buy_count.to_string(),
+        Some(Style::default().fg(app.theme.success)),
+    );
+    card::render(
+        frame,
+        areas[2],
+        app,
+        " Sells ",
+        sell_count.to_string(),
+        Some(Style::default().fg(app.theme.error)),
+    );
 }
 
 fn get_transaction_type_count(tx: &[Transaction]) -> (u64, u64) {
@@ -267,7 +242,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         ])
     });
 
-    render_table(
+    table::render(
         app,
         frame,
         areas[2],
@@ -311,7 +286,7 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         .spacing(2)
         .split(inner);
 
-    render_select(
+    select::render_select(
         app,
         frame,
         chunks[0],
@@ -320,7 +295,7 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         is_currently_focused(currently_focused, InputFocus::Period),
     );
 
-    render_select(
+    select::render_select(
         app,
         frame,
         chunks[1],
@@ -329,7 +304,7 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         is_currently_focused(currently_focused, InputFocus::TransactionType),
     );
 
-    render_input(
+    input::render_input(
         app,
         frame,
         chunks[2],
@@ -377,11 +352,11 @@ pub fn handle_input_backspace(app: &mut App, field: InputFocus) {
 pub fn handle_selector_tab(app: &mut App, field: InputFocus) {
     match field {
         InputFocus::TransactionType => {
-            cycle_enum(&mut app.transaction_page.filters.transaction_type);
+            select::cycle_enum(&mut app.transaction_page.filters.transaction_type);
         }
 
         InputFocus::Period => {
-            cycle_enum(&mut app.transaction_page.filters.period);
+            select::cycle_enum(&mut app.transaction_page.filters.period);
         }
 
         _ => {}

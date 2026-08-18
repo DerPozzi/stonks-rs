@@ -7,7 +7,7 @@ use ratatui::{
 };
 use rust_decimal_macros::dec;
 
-use crate::{app::App, components::table::render_table};
+use crate::{app::App, components::*};
 
 pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     let _test = Paragraph::new(format!("{:#?}", app.portfolio.ticker_info));
@@ -66,7 +66,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         ])
     });
 
-    render_table(
+    table::render(
         app,
         frame,
         area,
