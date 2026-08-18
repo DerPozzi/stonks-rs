@@ -1,5 +1,3 @@
-use std::{cmp, collections::HashMap};
-
 use ratatui::crossterm::event::{
     KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };

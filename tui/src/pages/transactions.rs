@@ -6,7 +6,7 @@ use chrono::NaiveDate;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Modifier, Style},
+    style::Style,
     text::Span,
     widgets::{Block, BorderType, Borders, Cell, Paragraph, Row},
 };
@@ -82,14 +82,14 @@ type Period = stonks_rs::types::TimeFrame;
 #[derive(Debug, Default)]
 pub struct TransactionPage {
     pub filters: TransactionFilters,
-    pub ui_areas: TransactionUiAreas,
+    pub _ui_areas: TransactionUiAreas,
 }
 
 #[derive(Debug)]
 pub struct FilterAreas {
-    pub period: Rect,
-    pub transaction_type: Rect,
-    pub asset: Rect,
+    pub _period: Rect,
+    pub _transaction_type: Rect,
+    pub _asset: Rect,
 }
 
 #[derive(Debug, Default)]
@@ -339,9 +339,9 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
     );
 
     FilterAreas {
-        period: chunks[0],
-        transaction_type: chunks[1],
-        asset: chunks[2],
+        _period: chunks[0],
+        _transaction_type: chunks[1],
+        _asset: chunks[2],
     }
 }
 

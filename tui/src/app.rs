@@ -111,8 +111,8 @@ impl std::fmt::Display for Page {
 pub enum Action {
     #[default]
     None,
-    Edit(u64),
-    Delete(u64),
+    _Edit(u64),
+    _Delete(u64),
     Hotkeys,
 }
 
@@ -414,7 +414,6 @@ impl App {
                         self.portfolio.ticker_info.insert(ticker, data);
                     }
                 }
-                _ => {}
             }
         }
     }
