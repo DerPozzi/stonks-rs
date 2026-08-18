@@ -22,54 +22,49 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         Cell::from("Current price"),
     ];
 
-    let table_rows = app
-        .portfolio
-        .ticker_info
-        .iter()
-        .filter(|t| t.total_shares != dec!(0))
-        .map(|tx| {
-            let gain_style = Style::default().fg(if tx.unrealized_gain_perc > dec!(0) {
-                app.theme.success
-            } else if tx.unrealized_gain_perc == dec!(0) {
-                app.theme.text
-            } else {
-                app.theme.error
-            });
-            Row::new(vec![
-                Cell::from(tx.name.clone()),
-                Cell::from(tx.ticker.clone()),
-                Cell::from(format!(
-                    "{} {}",
-                    tx.cost_basis.round_dp(2).to_string(),
-                    app.settings.default.currency
-                )),
-                Cell::from(format!(
-                    "{} {}",
-                    tx.market_value.round_dp(2).to_string(),
-                    app.settings.default.currency
-                )),
-                Cell::from(Span::styled(
-                    format!(
-                        "{} {} | {} %",
-                        tx.unrealized_gain.round_dp(2).to_string(),
-                        app.settings.default.currency,
-                        tx.unrealized_gain_perc.round_dp(2).to_string()
-                    ),
-                    gain_style,
-                )),
-                Cell::from(format!(
-                    "{} @ {} {}",
-                    tx.total_shares.round_dp(2).to_string(),
-                    tx.avg_cost.round_dp(2).to_string(),
-                    app.settings.default.currency
-                )),
-                Cell::from(format!(
-                    "{} {}",
-                    tx.current_price.round_dp(2).to_string(),
-                    app.settings.default.currency
-                )),
-            ])
+    let table_rows = app.portfolio.ticker_info.iter().map(|(t, tx)| {
+        let gain_style = Style::default().fg(if tx.unrealized_gain_perc > dec!(0) {
+            app.theme.success
+        } else if tx.unrealized_gain_perc == dec!(0) {
+            app.theme.text
+        } else {
+            app.theme.error
         });
+        Row::new(vec![
+            Cell::from(tx.name.clone()),
+            Cell::from(t.to_uppercase()),
+            Cell::from(format!(
+                "{} {}",
+                tx.cost_basis.round_dp(2).to_string(),
+                app.settings.default.currency
+            )),
+            Cell::from(format!(
+                "{} {}",
+                tx.market_value.round_dp(2).to_string(),
+                app.settings.default.currency
+            )),
+            Cell::from(Span::styled(
+                format!(
+                    "{} {} | {} %",
+                    tx.unrealized_gain.round_dp(2).to_string(),
+                    app.settings.default.currency,
+                    tx.unrealized_gain_perc.round_dp(2).to_string()
+                ),
+                gain_style,
+            )),
+            Cell::from(format!(
+                "{} @ {} {}",
+                tx.total_shares.round_dp(2).to_string(),
+                tx.avg_cost.round_dp(2).to_string(),
+                app.settings.default.currency
+            )),
+            Cell::from(format!(
+                "{} {}",
+                tx.current_price.round_dp(2).to_string(),
+                app.settings.default.currency
+            )),
+        ])
+    });
 
     render_table(
         app,

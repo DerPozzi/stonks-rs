@@ -58,7 +58,7 @@ fn render_page(app: &mut App, frame: &mut Frame, area: Rect) {
 
 pub fn render(app: &mut App, frame: &mut Frame) {
     let block = Block::default()
-        .title(format!(" Stonks-rs | {} ", app.current_page))
+        .title(format!(" Stonks-rs | {} - {}", app.current_page, app.error))
         .title_alignment(Alignment::Center)
         .title_bottom(bottom_title(app))
         .borders(Borders::ALL)

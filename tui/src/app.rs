@@ -1,4 +1,5 @@
 use std::{
+    collections::{HashMap, HashSet},
     path::PathBuf,
     time::{Duration, Instant},
 };
@@ -9,6 +10,7 @@ use ratatui::crossterm::event::MouseEvent;
 use anyhow::Result;
 use config::{Config, File};
 use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use stonks_rs::{
     service::{helpers::get_all_transactions, service::init_db},
@@ -130,7 +132,7 @@ pub enum CurrentFocus {
 #[derive(Debug, Default)]
 pub struct Portfolio {
     pub value: Decimal,
-    pub ticker_info: Vec<TickerData>,
+    pub ticker_info: HashMap<String, TickerData>,
 }
 
 #[derive(Debug)]
@@ -259,17 +261,17 @@ impl App {
     }
 
     pub fn save_new_transaction(&mut self) -> Result<()> {
-        let tx = &self.create_transaction;
+        let trans = &self.create_transaction;
 
         let new_tx = Transaction {
             id: None,
-            ticker: tx.ticker.clone(),
-            transaction_type: tx.transaction_type,
-            trade_date: NaiveDate::parse_from_str(&tx.trade_date_input, "%Y-%m-%d").unwrap(),
-            quantity: Decimal::try_from(tx.quantity.parse::<f32>()?)?,
-            price: Decimal::try_from(tx.price.parse::<f32>()?)?,
-            currency: tx.currency,
-            fees: Decimal::try_from(tx.fees.parse::<f32>()?)?,
+            ticker: trans.ticker.clone(),
+            transaction_type: trans.transaction_type,
+            trade_date: NaiveDate::parse_from_str(&trans.trade_date_input, "%Y-%m-%d").unwrap(),
+            quantity: Decimal::try_from(trans.quantity.parse::<f32>()?)?,
+            price: Decimal::try_from(trans.price.parse::<f32>()?)?,
+            currency: trans.currency,
+            fees: Decimal::try_from(trans.fees.parse::<f32>()?)?,
         };
 
         match stonks_rs::service::helpers::add_transaction_to_list(
@@ -285,6 +287,7 @@ impl App {
         self.focused_field = CurrentFocus::None;
 
         self.create_transaction = CreateTransaction::default();
+
         Ok(())
     }
 
@@ -366,6 +369,7 @@ impl App {
 
     pub fn request_updates(&mut self) {
         self.last_update = Some(Instant::now());
+        let tickers: HashSet<String> = self.transactions.iter().map(|t| t.ticker.clone()).collect();
 
         if let Some(tx) = &self.update_tx {
             let _ = tx.send(UpdateRequest::PortfolioValue(
@@ -373,10 +377,13 @@ impl App {
                 self.settings.default.currency,
             ));
 
-            let _ = tx.send(UpdateRequest::AllTickers(
-                self.transactions.clone(),
-                self.settings.default.currency,
-            ));
+            for t in tickers.iter() {
+                let _ = tx.send(UpdateRequest::TickerData(
+                    t.clone(),
+                    self.transactions.clone(),
+                    self.settings.default.currency,
+                ));
+            }
         }
     }
 
@@ -396,11 +403,17 @@ impl App {
                 }
 
                 UpdateMessage::Error(error) => {
+                    self.error = error.clone();
                     tracing::error!("Background update returned an error: {error}");
                 }
 
-                UpdateMessage::AllTickers(ti) => self.portfolio.ticker_info = ti,
-
+                UpdateMessage::Ticker { ticker, data } => {
+                    if data.total_shares == dec!(0) {
+                        let _ = self.portfolio.ticker_info.remove_entry(&ticker);
+                    } else {
+                        self.portfolio.ticker_info.insert(ticker, data);
+                    }
+                }
                 _ => {}
             }
         }

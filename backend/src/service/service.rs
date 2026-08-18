@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -68,51 +66,47 @@ pub fn db_add_transaction(conn: &Connection, tx: Transaction) -> Result<Transact
     transactions::add_transaction(conn, tx)
 }
 
-pub async fn get_all_ticker_info(
+pub async fn get_ticker_info(
+    t: String,
     tx: &[Transaction],
     curr: Option<Currency>,
-) -> Result<Vec<TickerData>> {
-    let tickers: HashSet<String> = tx.iter().map(|t| t.ticker.clone()).collect();
+) -> Result<TickerData> {
+    let t = t.as_str();
+    let (buy, sell) = calc_shares(tx, t);
 
-    let mut ticker_data = Vec::new();
-
-    for t in tickers.iter() {
-        let current_price = get_current_asset_price(t).await?;
-        let asset_currency = get_asset_currency(t).await?;
-
-        let exchange_rate = if let Some(t) = curr {
-            get_exchange_rate(asset_currency, t).await?
-        } else {
-            dec!(1)
-        };
-
-        let (buy, sell) = calc_shares(tx, t);
-
-        if buy - sell == dec!(0) {
-            continue;
-        }
-
-        let name = get_ticker_name(t.as_str()).await?;
-        let market_value = calc_market_value(tx, t, current_price)? * exchange_rate;
-        let avg_cost = calc_avg_cost(tx, t) * exchange_rate;
-        let cost_basis = calc_cost_basis(tx, t) * exchange_rate;
-        let unrealized_gain = calc_unrealized_gain(tx, t, current_price)? * exchange_rate;
-        let unrealized_gain_perc = calc_unrealized_gain_perc(tx, t, current_price)?;
-        let realized_gain = calc_realized_gains(tx, t)? * exchange_rate;
-
-        ticker_data.push(TickerData {
-            name,
-            ticker: t.clone(),
-            cost_basis,
-            current_price: current_price * exchange_rate,
-            market_value,
+    if buy - sell == dec!(0) {
+        return Ok(TickerData {
             total_shares: buy - sell,
-            avg_cost,
-            unrealized_gain,
-            unrealized_gain_perc,
-            realized_gain,
+            ..Default::default()
         });
     }
+    let current_price = get_current_asset_price(t).await?;
+    let asset_currency = get_asset_currency(t).await?;
 
-    Ok(ticker_data)
+    let exchange_rate = if let Some(t) = curr {
+        get_exchange_rate(asset_currency, t).await?
+    } else {
+        dec!(1)
+    };
+
+    let name = get_ticker_name(t).await?;
+    let market_value = calc_market_value(tx, t, current_price)? * exchange_rate;
+    let avg_cost = calc_avg_cost(tx, t) * exchange_rate;
+    let cost_basis = calc_cost_basis(tx, t) * exchange_rate;
+    let unrealized_gain = calc_unrealized_gain(tx, t, current_price)? * exchange_rate;
+    let unrealized_gain_perc = calc_unrealized_gain_perc(tx, t, current_price)?;
+    let realized_gain = calc_realized_gains(tx, t)? * exchange_rate;
+
+    Ok(TickerData {
+        name,
+        ticker: t.to_string(),
+        cost_basis,
+        current_price: current_price * exchange_rate,
+        market_value,
+        total_shares: buy - sell,
+        avg_cost,
+        unrealized_gain,
+        unrealized_gain_perc,
+        realized_gain,
+    })
 }

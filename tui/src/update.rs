@@ -145,8 +145,7 @@ pub fn mouse_update(app: &mut App, mouse_event: MouseEvent) {
 #[derive(Debug)]
 pub enum UpdateRequest {
     PortfolioValue(Vec<Transaction>, Currency),
-    Ticker(String),
-    AllTickers(Vec<Transaction>, Currency),
+    TickerData(String, Vec<Transaction>, Currency),
 }
 
 /// Nachrichten vom Background-Task zurück zur App.
@@ -155,7 +154,6 @@ pub enum UpdateMessage {
     PortfolioValue(Decimal),
 
     Ticker { ticker: String, data: TickerData },
-    AllTickers(Vec<TickerData>),
 
     Error(String),
 }
@@ -187,26 +185,19 @@ pub fn start_update_task() -> (
                     }
                 }
 
-                UpdateRequest::AllTickers(tx, curr) => {
-                    match stonks_rs::service::service::get_all_ticker_info(&tx, Some(curr)).await {
-                        Ok(mut ticker_data) => {
-                            ticker_data.sort_by(|a, b| {
-                                if a.ticker == b.ticker {
-                                    cmp::Ordering::Equal
-                                } else if a.ticker < b.ticker {
-                                    cmp::Ordering::Less
-                                } else {
-                                    cmp::Ordering::Greater
-                                }
-                            });
-
+                UpdateRequest::TickerData(t, tx, curr) => {
+                    match stonks_rs::service::service::get_ticker_info(t, &tx, Some(curr)).await {
+                        Ok(ticker_data) => {
                             let _ = message_tx
-                                .send(UpdateMessage::AllTickers(ticker_data))
+                                .send(UpdateMessage::Ticker {
+                                    ticker: ticker_data.ticker.clone(),
+                                    data: ticker_data,
+                                })
                                 .unwrap();
                         }
 
                         Err(error) => {
-                            tracing::error!("Failed to get info for all tickers: {error}");
+                            tracing::error!("Failed to get info for a ticker: {error}");
 
                             let _ = message_tx.send(UpdateMessage::Error(error.to_string()));
                         }
