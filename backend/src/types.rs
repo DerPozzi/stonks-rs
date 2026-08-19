@@ -264,3 +264,20 @@ pub struct TickerData {
     pub unrealized_gain_perc: Decimal,
     pub realized_gain: Decimal,
 }
+
+impl TickerData {
+    pub fn update_from(&mut self, update: TickerData) {
+        if !update.name.is_empty() {
+            self.name = update.name;
+        }
+
+        self.current_price = update.current_price;
+        self.cost_basis = update.cost_basis;
+        self.market_value = update.market_value;
+        self.total_shares = update.total_shares;
+        self.avg_cost = update.avg_cost;
+        self.unrealized_gain = update.unrealized_gain;
+        self.unrealized_gain_perc = update.unrealized_gain_perc;
+        self.realized_gain = update.realized_gain;
+    }
+}

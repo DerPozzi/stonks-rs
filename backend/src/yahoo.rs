@@ -85,7 +85,7 @@ pub async fn get_ticker_name(t: &str) -> Result<String> {
         .meta
         .long_name
         .as_ref()
-        .unwrap()
+        .unwrap_or(&"".to_string())
         .clone();
 
     Ok(long_name)

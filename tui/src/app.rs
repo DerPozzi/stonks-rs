@@ -410,6 +410,8 @@ impl App {
                 UpdateMessage::Ticker { ticker, data } => {
                     if data.total_shares == dec!(0) {
                         let _ = self.portfolio.ticker_info.remove_entry(&ticker);
+                    } else if let Some(existing) = self.portfolio.ticker_info.get_mut(&ticker) {
+                        existing.update_from(data);
                     } else {
                         self.portfolio.ticker_info.insert(ticker, data);
                     }
@@ -419,6 +421,8 @@ impl App {
     }
 
     pub fn update(&mut self) {
+        self.process_updates();
+
         if let Some(last_update) = self.last_update
             && last_update.elapsed()
                 < Duration::from_secs(self.settings.default.refresh_rate.unwrap_or(30))
@@ -431,6 +435,5 @@ impl App {
             Err(e) => tracing::error!("Failed to update transactions: {e}"),
         }
         self.request_updates();
-        self.process_updates();
     }
 }

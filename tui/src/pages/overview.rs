@@ -12,6 +12,11 @@ use crate::{app::App, components::*};
 pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     let _test = Paragraph::new(format!("{:#?}", app.portfolio.ticker_info));
 
+    let mut entries: Vec<_> = app.portfolio.ticker_info.iter().collect();
+
+    entries.sort_by(|(_, a), (_, b)| a.unrealized_gain.cmp(&b.unrealized_gain));
+    entries.reverse();
+
     let table_header = vec![
         Cell::from("Name"),
         Cell::from("Ticker"),
@@ -22,7 +27,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         Cell::from("Current price"),
     ];
 
-    let table_rows = app.portfolio.ticker_info.iter().map(|(t, tx)| {
+    let table_rows = entries.iter().map(|(t, tx)| {
         let gain_style = Style::default().fg(if tx.unrealized_gain_perc > dec!(0) {
             app.theme.success
         } else if tx.unrealized_gain_perc == dec!(0) {
@@ -31,7 +36,11 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
             app.theme.error
         });
         Row::new(vec![
-            Cell::from(tx.name.clone()),
+            Cell::from(if tx.name.is_empty() {
+                "Loading name ...".to_string()
+            } else {
+                tx.name.clone()
+            }),
             Cell::from(t.to_uppercase()),
             Cell::from(format!(
                 "{} {}",
