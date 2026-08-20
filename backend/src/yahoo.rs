@@ -90,3 +90,23 @@ pub async fn get_ticker_name(t: &str) -> Result<String> {
 
     Ok(long_name)
 }
+
+pub async fn get_todays_change(t: &str) -> Result<Decimal> {
+    let provider = yahoo_finance_api::YahooConnector::new()?;
+
+    let response = provider.get_quote_range(t, "1d", "1mo").await?;
+
+    let quotes = response.quotes()?;
+
+    let previous_day = quotes.get(quotes.len() - 2);
+    let current = quotes.last();
+
+    if let (Some(previous), Some(current)) = (previous_day, current) {
+        let change = current.close - previous.close;
+        let change_percent = Decimal::from_f64_retain(change / previous.close).unwrap()
+            * rust_decimal_macros::dec!(100);
+        return Ok(change_percent);
+    }
+
+    Ok(rust_decimal_macros::dec!(0))
+}

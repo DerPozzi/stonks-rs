@@ -97,6 +97,8 @@ pub async fn get_ticker_info(
     let unrealized_gain_perc = calc_unrealized_gain_perc(tx, t, current_price)?;
     let realized_gain = calc_realized_gains(tx, t)? * exchange_rate;
 
+    let todays_change = get_todays_change(t).await?;
+
     Ok(TickerData {
         name,
         ticker: t.to_string(),
@@ -108,5 +110,6 @@ pub async fn get_ticker_info(
         unrealized_gain,
         unrealized_gain_perc,
         realized_gain,
+        todays_change,
     })
 }

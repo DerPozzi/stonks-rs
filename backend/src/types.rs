@@ -263,6 +263,7 @@ pub struct TickerData {
     pub unrealized_gain: Decimal,
     pub unrealized_gain_perc: Decimal,
     pub realized_gain: Decimal,
+    pub todays_change: Decimal,
 }
 
 impl TickerData {
@@ -279,5 +280,6 @@ impl TickerData {
         self.unrealized_gain = update.unrealized_gain;
         self.unrealized_gain_perc = update.unrealized_gain_perc;
         self.realized_gain = update.realized_gain;
+        self.todays_change = update.todays_change;
     }
 }
