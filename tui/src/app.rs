@@ -131,7 +131,7 @@ pub enum CurrentFocus {
 
 #[derive(Debug, Default)]
 pub struct Portfolio {
-    pub value: Decimal,
+    pub value: Option<Decimal>,
     pub ticker_info: HashMap<String, TickerData>,
 }
 
@@ -399,7 +399,7 @@ impl App {
         for message in messages {
             match message {
                 UpdateMessage::PortfolioValue(value) => {
-                    self.portfolio.value = value;
+                    self.portfolio.value = Some(value);
                 }
 
                 UpdateMessage::Error(error) => {
