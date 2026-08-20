@@ -135,7 +135,7 @@ fn render_top_three(
             };
 
             Line::from(vec![
-                Span::styled(ticker.ticker.clone(), Style::default().fg(app.theme.text)),
+                Span::styled(&ticker.name, Style::default().fg(app.theme.text)),
                 Span::raw(" "),
                 Span::styled(
                     format!("{}%", ticker.todays_change.round_dp(2)),
