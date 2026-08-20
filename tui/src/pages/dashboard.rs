@@ -1,4 +1,10 @@
-use ratatui::{Frame, layout::Rect, widgets::Paragraph};
+use ratatui::layout::{Alignment, Constraint, Layout};
+use ratatui::style::Style;
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
+use ratatui::{Frame, layout::Rect};
+use rust_decimal::Decimal;
+use stonks_rs::types::TickerData;
 
 use crate::app::App;
 use crate::components::*;
@@ -46,12 +52,108 @@ use crate::components::*;
 pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     // Dashboard rendern
 
+    let mut assets: Vec<_> = app.portfolio.ticker_info.iter().map(|(_, td)| td).collect();
+
+    assets.sort_by(|a, b| a.todays_change.cmp(&b.unrealized_gain));
+
     // Areas anlegen
+
+    let areas = Layout::vertical([
+        Constraint::Percentage(33),
+        Constraint::Percentage(34),
+        Constraint::Percentage(33),
+    ])
+    .split(area);
 
     let portfolio_value = format!(
         "{} {}",
-        app.portfolio.value.round_dp(2),
-        app.settings.default.currency
+        if let Some(v) = app.portfolio.value {
+            v.round_dp(2).to_string()
+        } else {
+            "Loading".to_string()
+        },
+        if let Some(_) = app.portfolio.value {
+            app.settings.default.currency.to_string()
+        } else {
+            String::new()
+        }
     );
-    card::render(frame, area, app, " Portfolio Value ", portfolio_value, None);
+    card::render(
+        frame,
+        areas[0],
+        app,
+        " Portfolio Value ",
+        portfolio_value,
+        None,
+    );
+
+    render_top_three(
+        frame,
+        areas[1],
+        app,
+        " Worst Performers ",
+        assets
+            .iter()
+            .filter(|td| td.todays_change <= Decimal::ZERO)
+            .map(|td| *td)
+            .take(3)
+            .collect(),
+    );
+    assets.reverse();
+    render_top_three(
+        frame,
+        areas[2],
+        app,
+        " Top Performers ",
+        assets
+            .iter()
+            .filter(|td| td.todays_change > Decimal::ZERO)
+            .map(|td| *td)
+            .take(3)
+            .collect(),
+    );
+}
+
+fn render_top_three(
+    frame: &mut Frame,
+    area: Rect,
+    app: &App,
+    label: &str,
+    assets: Vec<&TickerData>,
+) {
+    let border_style = app.theme.secondary;
+
+    let lines: Vec<Line> = assets
+        .iter()
+        .map(|ticker| {
+            let change_style = if ticker.todays_change > Decimal::ZERO {
+                Style::default().fg(app.theme.success)
+            } else if ticker.todays_change < Decimal::ZERO {
+                Style::default().fg(app.theme.error)
+            } else {
+                Style::default().fg(app.theme.text)
+            };
+
+            Line::from(vec![
+                Span::styled(ticker.ticker.clone(), Style::default().fg(app.theme.text)),
+                Span::raw(" "),
+                Span::styled(
+                    format!("{}%", ticker.todays_change.round_dp(2)),
+                    change_style,
+                ),
+            ])
+        })
+        .collect();
+
+    let widget = Paragraph::new(lines)
+        .block(
+            Block::default()
+                .title(Span::styled(label, Style::default().fg(app.theme.text)))
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(border_style)),
+        )
+        .alignment(Alignment::Center);
+
+    frame.render_widget(widget, area);
 }
