@@ -5,10 +5,10 @@ use chrono::Datelike;
 use chrono::NaiveDate;
 use ratatui::{
     Frame,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::Style,
     text::Span,
-    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row},
+    widgets::{Block, BorderType, Borders, Cell, Row},
 };
 use stonks_rs::types::{CycleEnum, TimeFrame, Transaction, TransactionType};
 use strum::{EnumIter, FromRepr};
