@@ -34,18 +34,18 @@ pub struct Theme {
 impl Default for Theme {
     fn default() -> Self {
         Self {
-            background: Color::Rgb(20, 20, 20),
-            text: Color::Rgb(230, 230, 230),
+            background: Color::Reset,
+            text: Color::Reset,
 
-            primary: Color::Rgb(100, 180, 255),
-            secondary: Color::Rgb(180, 180, 180),
+            primary: Color::Cyan,
+            secondary: Color::White,
 
-            success: Color::Rgb(100, 200, 100),
-            warning: Color::Rgb(230, 200, 80),
-            error: Color::Rgb(230, 90, 90),
+            success: Color::Green,
+            warning: Color::Yellow,
+            error: Color::Red,
 
-            border: Color::Rgb(60, 60, 60),
-            muted: Color::Rgb(120, 120, 120),
+            border: Color::DarkGray,
+            muted: Color::DarkGray,
         }
     }
 }
