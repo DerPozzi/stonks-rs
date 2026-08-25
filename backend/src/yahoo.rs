@@ -46,7 +46,7 @@ pub async fn get_asset_data(asset_ticker: String, _time_frame: TimeFrame) -> Res
 }
 
 pub async fn get_exchange_rate(current: Currency, target: Currency) -> Result<Decimal> {
-    let pair = format!("{}{}=X", current.to_string(), target.to_string());
+    let pair = format!("{}{}=X", current, target);
     let provider = yahoo::YahooConnector::new()?;
     let response = provider.get_latest_quotes(&pair, "1d").await?;
 
