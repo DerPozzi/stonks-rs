@@ -23,7 +23,9 @@ pub trait CycleEnum: Copy + PartialEq + IntoEnumIterator {
 
 #[derive(Debug, Default, EnumIter, Clone, Copy, PartialEq)]
 pub enum TimeFrame {
+    #[strum(disabled)]
     OneMinute,
+    #[strum(disabled)]
     OneHour,
     OneDay,
     OneWeek,
