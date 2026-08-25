@@ -49,20 +49,20 @@ pub enum TimeFrame {
 
 impl CycleEnum for TimeFrame {}
 
-impl ToString for TimeFrame {
-    fn to_string(&self) -> String {
+impl Display for TimeFrame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TimeFrame::OneMinute => String::from("1m"),
-            TimeFrame::OneHour => String::from("1h"),
-            TimeFrame::OneDay => String::from("1d"),
-            TimeFrame::OneWeek => String::from("1w"),
-            TimeFrame::OneMonth => String::from("1mo"),
-            TimeFrame::ThreeMonth => String::from("3mo"),
-            TimeFrame::SixMonth => String::from("6mo"),
-            TimeFrame::YearToDate => String::from("ytd"),
-            TimeFrame::OneYear => String::from("1y"),
-            TimeFrame::FiveYear => String::from("5y"),
-            TimeFrame::Max => String::from("max"),
+            TimeFrame::OneMinute => write!(f, "1m"),
+            TimeFrame::OneHour => write!(f, "1h"),
+            TimeFrame::OneDay => write!(f, "1d"),
+            TimeFrame::OneWeek => write!(f, "1w"),
+            TimeFrame::OneMonth => write!(f, "1mo"),
+            TimeFrame::ThreeMonth => write!(f, "3mo"),
+            TimeFrame::SixMonth => write!(f, "6mo"),
+            TimeFrame::YearToDate => write!(f, "ytd"),
+            TimeFrame::OneYear => write!(f, "1y"),
+            TimeFrame::FiveYear => write!(f, "5y"),
+            TimeFrame::Max => write!(f, "max"),
         }
     }
 }
@@ -161,11 +161,11 @@ impl FromSql for TransactionType {
     }
 }
 
-impl ToString for TransactionType {
-    fn to_string(&self) -> String {
+impl Display for TransactionType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TransactionType::Buy => "Buy".to_string(),
-            TransactionType::Sell => "Sell".to_string(),
+            TransactionType::Buy => write!(f, "Buy"),
+            TransactionType::Sell => write!(f, "Sell"),
         }
     }
 }

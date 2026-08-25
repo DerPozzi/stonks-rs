@@ -13,6 +13,7 @@ use crate::{
 };
 
 #[derive(Debug, Default)]
+#[allow(dead_code)]
 pub struct UiAreas {
     pub transaction_ui_areas: Option<TransactionUiAreas>,
 }

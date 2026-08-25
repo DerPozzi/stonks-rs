@@ -33,6 +33,7 @@ pub async fn get_current_asset_price(asset_ticker: &str) -> Result<Decimal> {
     Ok(close)
 }
 
+#[allow(dead_code)]
 pub async fn get_asset_data(asset_ticker: String, _time_frame: TimeFrame) -> Result<YResponse> {
     let provider = yahoo::YahooConnector::new()?;
 

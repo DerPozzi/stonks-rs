@@ -1,4 +1,5 @@
 use std::cmp;
+use std::fmt::Display;
 
 use chrono::Datelike;
 
@@ -12,7 +13,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Cell, Row},
 };
 use stonks_rs::types::{CycleEnum, TimeFrame, Transaction, TransactionType};
-use strum::{EnumIter, FromRepr, IntoEnumIterator};
+use strum::{EnumIter, FromRepr};
 
 use crate::pages::PageState;
 use crate::{app::App, components::inputs::*, components::*};
@@ -61,12 +62,12 @@ pub enum TransactionTypeFilter {
 
 impl CycleEnum for TransactionTypeFilter {}
 
-impl ToString for TransactionTypeFilter {
-    fn to_string(&self) -> String {
+impl Display for TransactionTypeFilter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TransactionTypeFilter::All => "All".to_string(),
-            TransactionTypeFilter::Buy => "Buy".to_string(),
-            TransactionTypeFilter::Sell => "Sell".to_string(),
+            TransactionTypeFilter::All => write!(f, "All"),
+            TransactionTypeFilter::Buy => write!(f, "Buy"),
+            TransactionTypeFilter::Sell => write!(f, "Sell"),
         }
     }
 }
@@ -359,20 +360,5 @@ pub fn handle_input_backspace(app: &mut App, field: InputFocus) {
         }
 
         InputFocus::TransactionType | InputFocus::Period | InputFocus::Table => {}
-    }
-}
-
-pub fn handle_selector_tab(app: &mut App, field: InputFocus) {
-    match field {
-        InputFocus::TransactionType => {
-            app.transaction_page.filters.transaction_type =
-                app.transaction_page.filters.transaction_type.next();
-        }
-
-        InputFocus::Period => {
-            app.transaction_page.filters.period = app.transaction_page.filters.period.next();
-        }
-
-        _ => {}
     }
 }

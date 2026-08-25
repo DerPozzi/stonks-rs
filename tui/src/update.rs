@@ -182,7 +182,7 @@ pub fn start_update_task() -> (
         while let Some(request) = request_rx.recv().await {
             match request {
                 UpdateRequest::PortfolioValue(tx, curr) => {
-                    match stonks_rs::service::service::get_portfolio_value(&tx, Some(curr)).await {
+                    match stonks_rs::service::stonks::get_portfolio_value(&tx, Some(curr)).await {
                         Ok(portfolio) => {
                             let _ = message_tx.send(UpdateMessage::PortfolioValue(portfolio));
                         }
@@ -196,7 +196,7 @@ pub fn start_update_task() -> (
                 }
 
                 UpdateRequest::TickerData(t, tx, curr) => {
-                    match stonks_rs::service::service::get_ticker_info(t, &tx, Some(curr)).await {
+                    match stonks_rs::service::stonks::get_ticker_info(t, &tx, Some(curr)).await {
                         Ok(ticker_data) => {
                             message_tx
                                 .send(UpdateMessage::Ticker {

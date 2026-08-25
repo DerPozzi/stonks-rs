@@ -70,17 +70,17 @@ impl Default for CreateTransaction {
 
 #[derive(Debug, Clone, Copy)]
 pub struct CreateTransactionAreas {
-    pub ticker: Rect,
-    pub transaction_type: Rect,
-    pub trade_date: Rect,
-    pub quantity: Rect,
-    pub price: Rect,
-    pub fees: Rect,
-    pub taxes: Rect,
-    pub currency: Rect,
+    pub _ticker: Rect,
+    pub _transaction_type: Rect,
+    pub _trade_date: Rect,
+    pub _quantity: Rect,
+    pub _price: Rect,
+    pub _fees: Rect,
+    pub _taxes: Rect,
+    pub _currency: Rect,
 
-    pub cancel: Rect,
-    pub save: Rect,
+    pub _cancel: Rect,
+    pub _save: Rect,
 }
 
 fn is_currently_focused(current: Option<&InputFocus>, check: InputFocus) -> bool {
@@ -252,16 +252,16 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     render_button(app, frame, save_area, "[s] Save", true, false);
 
     let _create_transaction_areas = CreateTransactionAreas {
-        ticker: row_1[0],
-        transaction_type: row_1[1],
-        trade_date: row_2[0],
-        quantity: row_2[1],
-        price: row_3[0],
-        currency: row_3[1],
-        fees: row_4[0],
-        taxes: row_4[1],
-        cancel: cancel_area,
-        save: save_area,
+        _ticker: row_1[0],
+        _transaction_type: row_1[1],
+        _trade_date: row_2[0],
+        _quantity: row_2[1],
+        _price: row_3[0],
+        _currency: row_3[1],
+        _fees: row_4[0],
+        _taxes: row_4[1],
+        _cancel: cancel_area,
+        _save: save_area,
     };
 }
 
@@ -356,19 +356,5 @@ pub fn handle_input_backspace(app: &mut App, field: InputFocus) {
         }
 
         InputFocus::TransactionType | InputFocus::Currency => {}
-    }
-}
-
-pub fn handle_selector_tab(app: &mut App, field: InputFocus) {
-    match field {
-        InputFocus::TransactionType => {
-            &mut app.create_transaction.transaction_type.next();
-        }
-
-        InputFocus::Currency => {
-            &mut app.create_transaction.currency.next();
-        }
-
-        _ => {}
     }
 }

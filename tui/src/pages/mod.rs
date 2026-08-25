@@ -16,6 +16,7 @@ pub enum PageState {
 }
 
 impl PageState {
+    #[allow(dead_code)]
     pub fn overview_mut(&mut self) -> Option<&mut OverviewState> {
         match self {
             PageState::Overview(state) => Some(state),

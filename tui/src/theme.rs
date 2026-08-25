@@ -25,7 +25,7 @@ pub struct Theme {
     pub background: Color,
     pub text: Color,
     pub success: Color,
-    pub warning: Color,
+    pub _warning: Color,
     pub error: Color,
     pub border: Color,
     pub muted: Color,
@@ -41,7 +41,7 @@ impl Default for Theme {
             secondary: Color::White,
 
             success: Color::Green,
-            warning: Color::Yellow,
+            _warning: Color::Yellow,
             error: Color::Red,
 
             border: Color::DarkGray,
@@ -60,7 +60,7 @@ impl TryFrom<ThemeConfig> for Theme {
             primary: parse_color(&config.primary)?,
             secondary: parse_color(&config.secondary)?,
             success: parse_color(&config.success)?,
-            warning: parse_color(&config.warning)?,
+            _warning: parse_color(&config.warning)?,
             error: parse_color(&config.error)?,
             border: parse_color(&config.border)?,
             muted: parse_color(&config.muted)?,

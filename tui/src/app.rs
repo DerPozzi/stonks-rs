@@ -13,13 +13,13 @@ use rust_decimal::Decimal;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use stonks_rs::{
-    service::{helpers::get_all_transactions, service::init_db},
+    service::{helpers::get_all_transactions, stonks::init_db},
     types::{Connection, Currency, CycleEnum, TickerData, Transaction},
 };
 use tokio::sync::mpsc;
 
 use crate::{
-    components::inputs::{CurrentFocus, select},
+    components::inputs::CurrentFocus,
     pages::{
         self, Page, PageState,
         add_transaction::CreateTransaction,

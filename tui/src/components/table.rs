@@ -8,6 +8,7 @@ use ratatui::{
 
 use crate::theme::Theme;
 
+#[allow(clippy::too_many_arguments)]
 pub fn render<'a, I>(
     frame: &mut Frame,
     area: Rect,
@@ -30,8 +31,8 @@ pub fn render<'a, I>(
         .bottom_margin(1);
 
     let footer = Line::from(vec![
-        Span::styled("↑↓", Style::default().fg(theme.primary)),
-        Span::raw(" Navigate"),
+        Span::styled(" ↑↓", Style::default().fg(theme.primary)),
+        Span::raw(" Navigate "),
     ])
     .right_aligned();
 

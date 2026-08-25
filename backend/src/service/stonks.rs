@@ -17,7 +17,7 @@ use crate::yahoo::*;
 /// connection
 pub fn init_db(path: PathBuf) -> Result<Connection> {
     let conn = open_database(path)?;
-    database::create_tables(&conn)?;
+    db::create_tables(&conn)?;
     Ok(conn)
 }
 

@@ -94,7 +94,8 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         " Worst Performers ",
         assets
             .iter()
-            .filter(|td| td.todays_change <= Decimal::ZERO).copied()
+            .filter(|td| td.todays_change <= Decimal::ZERO)
+            .copied()
             .take(3)
             .collect(),
     );
@@ -106,7 +107,8 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         " Top Performers ",
         assets
             .iter()
-            .filter(|td| td.todays_change > Decimal::ZERO).copied()
+            .filter(|td| td.todays_change > Decimal::ZERO)
+            .copied()
             .take(3)
             .collect(),
     );

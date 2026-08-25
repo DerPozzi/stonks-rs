@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 use anyhow::Result;
 use rusqlite::Connection;
 
-use crate::database::database::create_tables;
+use crate::database::db::create_tables;
 
 pub fn open_database(home_path: PathBuf) -> Result<Connection> {
     let db_path = home_path.join(".stonks-rs/").join("stonks-rs.db");

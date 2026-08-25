@@ -6,7 +6,7 @@ use rust_decimal_macros::dec;
 use anyhow::Result;
 
 use crate::{
-    service::service::calc_shares,
+    service::stonks::calc_shares,
     types::{Currency, Dividend, Transaction, TransactionType},
     yahoo::{get_asset_currency, get_current_asset_price, get_exchange_rate},
 };
@@ -137,6 +137,7 @@ pub async fn calc_portfolio_value(
 /// Portfolio weight of given asset
 ///
 /// "How many percent of my total portfolio is asset x?"
+#[allow(dead_code)]
 pub async fn calc_portfolio_weight(transactions: &[Transaction], ticker: &str) -> Result<Decimal> {
     let current_asset_price = get_current_asset_price(ticker).await?;
     let market_value = calc_market_value(transactions, ticker, current_asset_price)?;
@@ -152,6 +153,7 @@ pub async fn calc_portfolio_weight(transactions: &[Transaction], ticker: &str) -
  *
  */
 
+#[allow(dead_code)]
 pub fn calc_gross_dividends(dividends: &[Dividend], ticker: &str) -> Decimal {
     dividends
         .iter()
@@ -160,6 +162,7 @@ pub fn calc_gross_dividends(dividends: &[Dividend], ticker: &str) -> Decimal {
         .sum()
 }
 
+#[allow(dead_code)]
 pub fn calc_net_dividends(dividends: &[Dividend], ticker: &str) -> Decimal {
     dividends
         .iter()
@@ -174,6 +177,7 @@ pub fn calc_net_dividends(dividends: &[Dividend], ticker: &str) -> Decimal {
  *
  */
 
+#[allow(dead_code)]
 pub async fn calc_total_return(
     transactions: &[Transaction],
     dividends: &[Dividend],

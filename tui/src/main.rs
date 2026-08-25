@@ -64,7 +64,7 @@ async fn main() -> Result<()> {
             Event::Tick => app.update(),
             Event::Key(key_event) => update::keyboard_update(&mut app, key_event),
             Event::Mouse(mouse_event) => update::mouse_update(&mut app, mouse_event),
-            Event::Resize(_, _) => {}
+            Event::Resize(_w, _h) => {}
         };
     }
 
