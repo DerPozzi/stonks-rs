@@ -1,0 +1,45 @@
+name: TUI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "tui/**"
+      - ".github/workflows/tui.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "tui/**"
+      - ".github/workflows/tui.yml"
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: tui
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --all-features -- -D warnings
+
+      - name: Build
+        run: cargo build --all-features
+
+      - name: Test
+        run: cargo test --all-features
