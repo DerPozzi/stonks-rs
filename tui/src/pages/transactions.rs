@@ -3,6 +3,7 @@ use std::cmp;
 use chrono::Datelike;
 
 use chrono::NaiveDate;
+use ratatui::widgets::TableState;
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
@@ -11,8 +12,9 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Cell, Row},
 };
 use stonks_rs::types::{CycleEnum, TimeFrame, Transaction, TransactionType};
-use strum::{EnumIter, FromRepr};
+use strum::{EnumIter, FromRepr, IntoEnumIterator};
 
+use crate::pages::PageState;
 use crate::{app::App, components::inputs::*, components::*};
 
 /*
@@ -42,10 +44,11 @@ use crate::{app::App, components::inputs::*, components::*};
 └─────────────────────────────────────────────────────────────────────────────┘
 */
 #[derive(Debug, Default)]
-pub struct TransactionFilters {
+pub struct TransactionState {
     pub period: Period,
     pub transaction_type: TransactionTypeFilter,
     pub ticker: String,
+    pub transaction_table: TableState,
 }
 
 #[derive(Debug, Default, PartialEq, Copy, Clone, EnumIter)]
@@ -72,7 +75,7 @@ type Period = stonks_rs::types::TimeFrame;
 
 #[derive(Debug, Default)]
 pub struct TransactionPage {
-    pub filters: TransactionFilters,
+    pub filters: TransactionState,
     pub _ui_areas: TransactionUiAreas,
 }
 
@@ -242,14 +245,19 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         ])
     });
 
+    let PageState::Transaction(state) = &mut app.page_state else {
+        todo!()
+    };
+
     table::render(
-        app,
         frame,
         areas[2],
         "[4] Transactions",
         table_header,
         table_rows,
         is_currently_focused(currently_focused, InputFocus::Table),
+        &mut state.transaction_table,
+        app.theme.clone(),
     );
     let transaction_ui_areas = TransactionUiAreas {
         filters: Some(transaction_filter_areas),
@@ -287,30 +295,33 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         .split(inner);
 
     select::render_select(
-        app,
         frame,
         chunks[0],
         "[1] Period",
         app.transaction_page.filters.period.to_string(),
         is_currently_focused(currently_focused, InputFocus::Period),
+        app.input_mode,
+        &app.theme,
     );
 
     select::render_select(
-        app,
         frame,
         chunks[1],
         "[2] Type",
         app.transaction_page.filters.transaction_type.to_string(),
         is_currently_focused(currently_focused, InputFocus::TransactionType),
+        app.input_mode,
+        &app.theme,
     );
 
     input::render_input(
-        app,
         frame,
         chunks[2],
         "[3] Ticker",
         &app.transaction_page.filters.ticker.to_string(),
         is_currently_focused(currently_focused, InputFocus::Ticker),
+        app.input_mode,
+        &app.theme,
     );
 
     FilterAreas {
@@ -320,13 +331,31 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, FromRepr)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromRepr, EnumIter)]
 pub enum InputFocus {
     #[default]
     Period,
     TransactionType,
     Ticker,
     Table,
+}
+
+impl crate::app::InputFocus for InputFocus {
+    fn next(&self) -> Self {
+        let items: Vec<_> = Self::iter().collect();
+
+        let index = items.iter().position(|x| x == self).unwrap();
+
+        items[(index + 1) % items.len()]
+    }
+
+    fn previous(&self) -> Self {
+        let items: Vec<_> = Self::iter().collect();
+
+        let index = items.iter().position(|x| x == self).unwrap();
+
+        items[(index + items.len() - 1) % items.len()]
+    }
 }
 
 pub fn handle_input_char(app: &mut App, field: InputFocus, c: char) {

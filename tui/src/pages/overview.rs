@@ -3,11 +3,16 @@ use ratatui::{
     layout::{Alignment, Rect},
     style::Style,
     text::Span,
-    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Wrap},
+    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, TableState, Wrap},
 };
 use rust_decimal_macros::dec;
 
-use crate::{app::App, components::*};
+use crate::{app::App, components::*, pages::PageState};
+
+#[derive(Debug, Default)]
+pub struct OverviewState {
+    overview_table: TableState,
+}
 
 pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     let _test = Paragraph::new(format!("{:#?}", app.portfolio.ticker_info));
@@ -91,8 +96,11 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         ])
     });
 
+    let PageState::Overview(state) = &mut app.page_state else {
+        todo!()
+    };
+
     table::render(
-        app,
         frame,
         area,
         "Ticker Info",
@@ -100,5 +108,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         table_rows,
         // is_currently_focused(currently_focused, InputFocus::Table),
         true,
+        &mut state.overview_table,
+        app.theme.clone(),
     );
 }

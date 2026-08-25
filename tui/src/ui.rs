@@ -8,8 +8,8 @@ use ratatui::{
 use strum::IntoEnumIterator;
 
 use crate::{
-    app::{App, Page},
-    pages::{self, transactions::TransactionUiAreas},
+    app::App,
+    pages::{self, Page, transactions::TransactionUiAreas},
 };
 
 #[derive(Debug, Default)]
@@ -58,7 +58,10 @@ fn render_page(app: &mut App, frame: &mut Frame, area: Rect) {
 
 pub fn render(app: &mut App, frame: &mut Frame) {
     let block = Block::default()
-        .title(format!(" Stonks-rs | {} - {}", app.current_page, app.error))
+        .title(format!(
+            " Stonks-rs | {} - input_mode: {}",
+            app.current_page, app.input_mode
+        ))
         .title_alignment(Alignment::Center)
         .title_bottom(bottom_title(app))
         .borders(Borders::ALL)

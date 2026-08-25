@@ -16,12 +16,11 @@ use stonks_rs::{
     service::{helpers::get_all_transactions, service::init_db},
     types::{Connection, Currency, TickerData, Transaction},
 };
-use strum::EnumIter;
 use tokio::sync::mpsc;
 
 use crate::{
     pages::{
-        self,
+        self, Page, PageState,
         add_transaction::CreateTransaction,
         transactions::{TransactionPage, TransactionUiAreas},
     },
@@ -81,32 +80,6 @@ fn init() -> Result<(Connection, Vec<Transaction>, Settings, Theme)> {
     Ok((conn, transactions, settings, theme))
 }
 
-#[derive(Debug, PartialEq, EnumIter, Default, Clone)]
-pub enum Page {
-    #[default]
-    Dashboard,
-    Overview,
-    Transactions,
-    Dividends,
-    #[strum(disabled)]
-    Settings(Box<Page>),
-    #[strum(disabled)]
-    AddTransaction,
-}
-
-impl std::fmt::Display for Page {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Page::Dashboard => write!(f, "Dashboard"),
-            Page::Overview => write!(f, "Overview"),
-            Page::Transactions => write!(f, "Transactions"),
-            Page::Dividends => write!(f, "Dividends"),
-            Page::Settings(_) => write!(f, "Settings"),
-            Page::AddTransaction => write!(f, "Add a Transaction"),
-        }
-    }
-}
-
 #[derive(Debug, Default)]
 pub enum Action {
     #[default]
@@ -129,6 +102,39 @@ pub enum CurrentFocus {
     AddTransaction(pages::add_transaction::InputFocus),
 }
 
+impl InputFocus for CurrentFocus {
+    fn previous(&self) -> Self {
+        match self {
+            CurrentFocus::TransactionPage(input_focus) => {
+                CurrentFocus::TransactionPage(input_focus.previous())
+            }
+
+            CurrentFocus::AddTransaction(input_focus) => {
+                CurrentFocus::AddTransaction(input_focus.previous())
+            }
+            CurrentFocus::None => CurrentFocus::None,
+        }
+    }
+
+    fn next(&self) -> Self {
+        match self {
+            CurrentFocus::TransactionPage(input_focus) => {
+                CurrentFocus::TransactionPage(input_focus.next())
+            }
+
+            CurrentFocus::AddTransaction(input_focus) => {
+                CurrentFocus::AddTransaction(input_focus.next())
+            }
+            CurrentFocus::None => CurrentFocus::None,
+        }
+    }
+}
+
+pub trait InputFocus {
+    fn previous(&self) -> Self;
+    fn next(&self) -> Self;
+}
+
 #[derive(Debug, Default)]
 pub struct Portfolio {
     pub value: Option<Decimal>,
@@ -142,6 +148,7 @@ pub struct App {
     pub settings: Settings,
     pub should_quit: bool,
     pub current_page: Page,
+    pub page_state: PageState,
     pub current_action: Action,
     pub theme: Theme,
 
@@ -155,7 +162,7 @@ pub struct App {
     pub transaction_page: TransactionPage,
 
     pub current_page_focused: bool,
-    pub input_text: bool,
+    pub input_mode: bool,
     pub focused_field: CurrentFocus,
 
     pub create_transaction: CreateTransaction,
@@ -177,12 +184,13 @@ impl Default for App {
             settings,
             should_quit: false,
             current_page: Page::default(),
+            page_state: PageState::None,
             current_action: Action::default(),
             theme,
             ui_areas: UiAreas::default(),
             transaction_page: TransactionPage::default(),
             current_page_focused: false,
-            input_text: false,
+            input_mode: false,
             create_transaction: CreateTransaction::default(),
             focused_field: CurrentFocus::None,
             portfolio: Portfolio::default(),
@@ -216,8 +224,15 @@ impl App {
     pub fn next_page(&mut self) {
         self.current_action = Action::default();
         self.current_page = match self.current_page {
-            Page::Dashboard => Page::Overview,
-            Page::Overview => Page::Transactions,
+            Page::Dashboard => {
+                self.page_state = PageState::Overview(pages::overview::OverviewState::default());
+                Page::Overview
+            }
+            Page::Overview => {
+                self.page_state =
+                    PageState::Transaction(pages::transactions::TransactionState::default());
+                Page::Transactions
+            }
             Page::Transactions => {
                 self.transaction_page = TransactionPage::default();
                 Page::Dividends
@@ -233,9 +248,14 @@ impl App {
             Page::Overview => Page::Dashboard,
             Page::Transactions => {
                 self.transaction_page = TransactionPage::default();
+                self.page_state = PageState::Overview(pages::overview::OverviewState::default());
                 Page::Overview
             }
-            Page::Dividends => Page::Transactions,
+            Page::Dividends => {
+                self.page_state =
+                    PageState::Transaction(pages::transactions::TransactionState::default());
+                Page::Transactions
+            }
             _ => Page::Dashboard,
         }
     }
@@ -257,6 +277,8 @@ impl App {
 
     pub fn add_transaction(&mut self) {
         self.current_page = Page::AddTransaction;
+        self.focused_field =
+            CurrentFocus::AddTransaction(pages::add_transaction::InputFocus::default());
         self.current_page_focused = true;
     }
 
@@ -292,6 +314,18 @@ impl App {
     }
 
     pub fn focus_page(&mut self) {
+        self.focused_field = match &self.current_page {
+            Page::Dashboard => todo!(),
+            Page::Overview => todo!(),
+            Page::Transactions => {
+                CurrentFocus::TransactionPage(pages::transactions::InputFocus::default())
+            }
+            Page::Dividends => todo!(),
+            Page::Settings(_page) => todo!(),
+            Page::AddTransaction => {
+                CurrentFocus::AddTransaction(pages::add_transaction::InputFocus::default())
+            }
+        };
         self.current_page_focused = true;
     }
 
@@ -354,17 +388,19 @@ impl App {
             _ => {}
         }
     }
-    pub fn handle_selector_tab(&mut self) {
-        match self.focused_field {
-            CurrentFocus::TransactionPage(field) => {
-                pages::transactions::handle_selector_tab(self, field)
-            }
-            CurrentFocus::AddTransaction(field) => {
-                pages::add_transaction::handle_selector_tab(self, field)
-            }
-
-            _ => {}
+    pub fn handle_tab(&mut self) {
+        if self.input_mode {
+            return;
         }
+        self.focused_field = self.focused_field.next()
+        // cycle if it's a selector
+    }
+
+    pub fn handle_shift_tab(&mut self) {
+        if self.input_mode {
+            return;
+        }
+        self.focused_field = self.focused_field.previous()
     }
 
     pub fn request_updates(&mut self) {

@@ -5,14 +5,15 @@ use rust_decimal::Decimal;
 use stonks_rs::types::{Currency, TickerData, Transaction};
 use tokio::sync::mpsc;
 
-use crate::app::{App, CurrentFocus, Page};
+use crate::app::{App, CurrentFocus};
+use crate::pages::Page;
 
 pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
     // ============================================================
     // INPUT MODE
     // ============================================================
 
-    if app.input_text {
+    if app.input_mode {
         match key_event.code {
             KeyCode::Char(c) => {
                 app.input_char(c);
@@ -23,12 +24,10 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
             }
 
             KeyCode::Esc => {
-                app.input_text = false;
+                app.input_mode = false;
             }
-            KeyCode::Tab => {
-                app.handle_selector_tab();
-            }
-
+            KeyCode::Tab => app.handle_tab(),
+            KeyCode::BackTab => app.handle_shift_tab(),
             _ => {}
         }
 
@@ -71,9 +70,10 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
         }
 
         // Add Transaction
-        KeyCode::Char('a') => {
-            app.add_transaction();
-        }
+        KeyCode::Char('a') => match app.current_page {
+            Page::Transactions => app.add_transaction(),
+            _ => {}
+        },
 
         // Transaction speichern
         KeyCode::Char('s') if app.current_page == Page::AddTransaction => {
@@ -81,7 +81,7 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
         }
 
         KeyCode::Enter => {
-            if app.input_text {
+            if app.input_mode {
                 return;
             }
 
@@ -96,24 +96,35 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
                 }
 
                 CurrentFocus::TransactionPage(_) => {
-                    app.input_text = true;
+                    app.input_mode = true;
                 }
 
                 CurrentFocus::AddTransaction(_) => {
-                    app.input_text = true;
+                    app.input_mode = true;
                 }
             }
         }
+        KeyCode::Char('c') => match app.current_page {
+            Page::AddTransaction => {
+                app.current_page = Page::Transactions;
+                app.current_page_focused = false;
+            }
+            _ => {}
+        },
         // Esc
         KeyCode::Esc => {
-            if app.input_text {
-                app.input_text = false;
+            if app.input_mode {
+                app.input_mode = false;
             } else if app.focused_field != CurrentFocus::None {
                 app.focused_field = CurrentFocus::None;
             } else if app.current_page_focused {
                 app.unfocus_page();
             }
         }
+        // Tab
+        KeyCode::Tab => app.handle_tab(),
+
+        KeyCode::BackTab => app.handle_shift_tab(),
 
         _ => {}
     }
@@ -200,11 +211,9 @@ pub fn start_update_task() -> (
                             let _ = message_tx.send(UpdateMessage::Error(error.to_string()));
                         }
                     }
-                }
-
-                request => {
-                    tracing::warn!("Unhandled update request: {:?}", request);
-                }
+                } // request => {
+                  //     tracing::warn!("Unhandled update request: {:?}", request);
+                  // }
             }
         }
 

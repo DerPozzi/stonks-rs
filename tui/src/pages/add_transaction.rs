@@ -7,7 +7,7 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
 };
 
-use strum::FromRepr;
+use strum::{EnumIter, FromRepr, IntoEnumIterator};
 
 use crate::{
     app::App,
@@ -19,7 +19,7 @@ use crate::{
 
 use stonks_rs::types::{Currency, TransactionType};
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, FromRepr)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, FromRepr, EnumIter)]
 pub enum InputFocus {
     #[default]
     Ticker,
@@ -32,13 +32,30 @@ pub enum InputFocus {
     Taxes,
 }
 
+impl crate::app::InputFocus for InputFocus {
+    fn next(&self) -> Self {
+        let items: Vec<_> = Self::iter().collect();
+
+        let index = items.iter().position(|x| x == self).unwrap();
+
+        items[(index + 1) % items.len()]
+    }
+
+    fn previous(&self) -> Self {
+        let items: Vec<_> = Self::iter().collect();
+
+        let index = items.iter().position(|x| x == self).unwrap();
+
+        items[(index + items.len() - 1) % items.len()]
+    }
+}
+
 #[derive(Debug)]
 pub struct CreateTransaction {
     pub ticker: String,
 
     pub transaction_type: TransactionType,
 
-    pub trade_date: NaiveDate,
     pub trade_date_input: String,
 
     pub quantity: String,
@@ -48,8 +65,6 @@ pub struct CreateTransaction {
     pub taxes: String,
 
     pub currency: Currency,
-
-    pub focused_field: InputFocus,
 }
 impl Default for CreateTransaction {
     fn default() -> Self {
@@ -60,7 +75,6 @@ impl Default for CreateTransaction {
 
             transaction_type: TransactionType::Buy,
 
-            trade_date: today,
             trade_date_input: today.format("%Y-%m-%d").to_string(),
 
             quantity: String::new(),
@@ -70,8 +84,6 @@ impl Default for CreateTransaction {
             taxes: "0".to_string(),
 
             currency: Currency::EUR,
-
-            focused_field: InputFocus::Ticker,
         }
     }
 }
@@ -161,75 +173,83 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         .split(rows[3]);
 
     render_input(
-        app,
         frame,
         row_1[0],
         "[1] Ticker",
         &app.create_transaction.ticker,
         is_currently_focused(currently_focused, InputFocus::Ticker),
+        app.input_mode,
+        &app.theme,
     );
 
     render_select(
-        app,
         frame,
         row_1[1],
         "[2] Type",
         app.create_transaction.transaction_type.to_string(),
         is_currently_focused(currently_focused, InputFocus::TransactionType),
+        app.input_mode,
+        &app.theme,
     );
 
     render_input(
-        app,
         frame,
         row_2[0],
         "[3] Trade Date",
         &app.create_transaction.trade_date_input.to_string(),
         is_currently_focused(currently_focused, InputFocus::TradeDate),
+        app.input_mode,
+        &app.theme,
     );
 
     render_input(
-        app,
         frame,
         row_2[1],
         "[4] Quantity",
         &app.create_transaction.quantity,
         is_currently_focused(currently_focused, InputFocus::Quantity),
+        app.input_mode,
+        &app.theme,
     );
 
     render_input(
-        app,
         frame,
         row_3[0],
         "[5] Price",
         &app.create_transaction.price,
         is_currently_focused(currently_focused, InputFocus::Price),
+        app.input_mode,
+        &app.theme,
     );
 
     render_select(
-        app,
         frame,
         row_3[1],
         "[6] Currency",
         app.create_transaction.currency.to_string(),
         is_currently_focused(currently_focused, InputFocus::Currency),
+        app.input_mode,
+        &app.theme,
     );
 
     render_input(
-        app,
         frame,
         row_4[0],
         "[7] Fees",
         &app.create_transaction.fees,
         is_currently_focused(currently_focused, InputFocus::Fees),
+        app.input_mode,
+        &app.theme,
     );
 
     render_input(
-        app,
         frame,
         row_4[1],
         "[8] Taxes",
         &app.create_transaction.taxes,
         is_currently_focused(currently_focused, InputFocus::Taxes),
+        app.input_mode,
+        &app.theme,
     );
 
     let buttons = Layout::default()
