@@ -6,9 +6,9 @@ use rust_decimal_macros::dec;
 use anyhow::Result;
 
 use crate::{
-    service::service::calc_shares,
-    types::{Dividend, Transaction, TransactionType},
-    yahoo::get_current_asset_price,
+    service::stonks::calc_shares,
+    types::{Currency, Dividend, Transaction, TransactionType},
+    yahoo::{get_asset_currency, get_current_asset_price, get_exchange_rate},
 };
 
 /*
@@ -29,8 +29,6 @@ pub fn calc_avg_cost(transactions: &[Transaction], ticker: &str) -> Decimal {
         }
     }
 
-    println!("{}", total_cost);
-
     if buy == dec!(0.0) {
         return dec!(0.0);
     }
@@ -38,11 +36,11 @@ pub fn calc_avg_cost(transactions: &[Transaction], ticker: &str) -> Decimal {
     total_cost / buy
 }
 
-pub fn calc_cost_basis(transactions: &[Transaction], ticker: &str) -> Result<Decimal> {
+pub fn calc_cost_basis(transactions: &[Transaction], ticker: &str) -> Decimal {
     let avg_cost = calc_avg_cost(transactions, ticker);
-    let (num_shares, _) = calc_shares(transactions, ticker);
+    let (buy, sell) = calc_shares(transactions, ticker);
 
-    Ok(avg_cost * num_shares)
+    avg_cost * (buy - sell)
 }
 
 pub fn calc_unrealized_gain(
@@ -51,20 +49,22 @@ pub fn calc_unrealized_gain(
     current_price: Decimal,
 ) -> Result<Decimal> {
     let market_value = calc_market_value(transactions, ticker, current_price)?;
-    let cost_basis = calc_avg_cost(transactions, ticker);
-
-    println!("mv: {}, cb: {}", market_value, cost_basis);
+    let cost_basis = calc_cost_basis(transactions, ticker);
 
     Ok(market_value - cost_basis)
 }
 
-pub fn calc_unrealized_gain_prec(
+pub fn calc_unrealized_gain_perc(
     transactions: &[Transaction],
     ticker: &str,
     current_price: Decimal,
 ) -> Result<Decimal> {
     let unrealized_gain = calc_unrealized_gain(transactions, ticker, current_price)?;
-    let cost_basis = calc_avg_cost(transactions, ticker);
+    let cost_basis = calc_cost_basis(transactions, ticker);
+
+    if cost_basis == dec!(0.0) {
+        return Err(anyhow::anyhow!("Cost basis was 0.0"));
+    }
 
     Ok(unrealized_gain / cost_basis * dec!(100))
 }
@@ -74,10 +74,10 @@ pub fn calc_market_value(
     ticker: &str,
     current_price: Decimal,
 ) -> Result<Decimal> {
-    let (buy, _) = calc_shares(transactions, ticker);
-    let market_value = current_price * buy;
+    let (buy, sell) = calc_shares(transactions, ticker);
+    let market_value = current_price * (buy - sell);
 
-    Ok(Decimal::try_from(market_value)?)
+    Ok(market_value)
 }
 
 /*
@@ -111,14 +111,26 @@ pub fn calc_realized_gains(transactions: &[Transaction], ticker: &str) -> Result
  *
  */
 
-pub async fn calc_portfolio_value(transactions: &[Transaction]) -> Result<Decimal> {
+pub async fn calc_portfolio_value(
+    transactions: &[Transaction],
+    target_currency: Option<Currency>,
+) -> Result<Decimal> {
     let tickers: HashSet<String> = transactions.iter().map(|t| t.ticker.clone()).collect();
 
     let mut total_portfolio_value = dec!(0);
 
     for ticker in tickers {
         let current_price = get_current_asset_price(&ticker).await?;
-        let market_value = calc_market_value(transactions, &ticker, current_price)?;
+        let asset_currency = get_asset_currency(&ticker).await?;
+
+        let mut market_value = calc_market_value(transactions, &ticker, current_price)?;
+
+        if let Some(target_currency) = target_currency
+            && target_currency != asset_currency
+        {
+            let exchange_rate = get_exchange_rate(asset_currency, target_currency).await?;
+            market_value *= exchange_rate;
+        }
 
         total_portfolio_value += market_value;
     }
@@ -129,10 +141,11 @@ pub async fn calc_portfolio_value(transactions: &[Transaction]) -> Result<Decima
 /// Portfolio weight of given asset
 ///
 /// "How many percent of my total portfolio is asset x?"
+#[allow(dead_code)]
 pub async fn calc_portfolio_weight(transactions: &[Transaction], ticker: &str) -> Result<Decimal> {
     let current_asset_price = get_current_asset_price(ticker).await?;
     let market_value = calc_market_value(transactions, ticker, current_asset_price)?;
-    let portfolio_value = calc_portfolio_value(transactions).await?;
+    let portfolio_value = calc_portfolio_value(transactions, Some(Currency::EUR)).await?;
 
     let portfolio_weight = market_value / portfolio_value * dec!(100);
     Ok(portfolio_weight)
@@ -144,6 +157,7 @@ pub async fn calc_portfolio_weight(transactions: &[Transaction], ticker: &str) -
  *
  */
 
+#[allow(dead_code)]
 pub fn calc_gross_dividends(dividends: &[Dividend], ticker: &str) -> Decimal {
     dividends
         .iter()
@@ -152,6 +166,7 @@ pub fn calc_gross_dividends(dividends: &[Dividend], ticker: &str) -> Decimal {
         .sum()
 }
 
+#[allow(dead_code)]
 pub fn calc_net_dividends(dividends: &[Dividend], ticker: &str) -> Decimal {
     dividends
         .iter()
@@ -166,6 +181,7 @@ pub fn calc_net_dividends(dividends: &[Dividend], ticker: &str) -> Decimal {
  *
  */
 
+#[allow(dead_code)]
 pub async fn calc_total_return(
     transactions: &[Transaction],
     dividends: &[Dividend],

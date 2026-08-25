@@ -1,18 +1,23 @@
 use anyhow::Result;
 use anyhow::anyhow;
 use rusqlite::Connection;
+use rust_decimal::Decimal;
 
 use crate::database::*;
 use crate::types::*;
+
+pub fn get_all_transactions(db_conn: &Connection) -> Result<Vec<Transaction>> {
+    transactions::load_all_transactions_from_db(db_conn)
+}
 
 pub fn add_transaction_to_list(
     conn: &Connection,
     trans_list: &mut Vec<Transaction>,
     trans: Transaction,
-) -> Result<()> {
+) -> Result<Transaction> {
     let new_transaction = transactions::add_transaction(conn, trans)?;
-    trans_list.push(new_transaction);
-    Ok(())
+    trans_list.push(new_transaction.clone());
+    Ok(new_transaction)
 }
 
 pub fn delete_transaction_from_list(
@@ -32,6 +37,10 @@ pub fn delete_transaction_from_list(
         })?;
     let _ = trans_list.remove(index);
     Ok(())
+}
+
+pub async fn get_exchange_rate(current: Currency, target: Currency) -> Result<Decimal> {
+    crate::yahoo::get_exchange_rate(current, target).await
 }
 
 pub fn edit_transaction_in_list(

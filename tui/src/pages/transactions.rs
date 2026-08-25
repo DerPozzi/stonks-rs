@@ -1,0 +1,364 @@
+use std::cmp;
+use std::fmt::Display;
+
+use chrono::Datelike;
+
+use chrono::NaiveDate;
+use ratatui::widgets::TableState;
+use ratatui::{
+    Frame,
+    layout::{Constraint, Direction, Layout, Rect},
+    style::Style,
+    text::Span,
+    widgets::{Block, BorderType, Borders, Cell, Row},
+};
+use stonks_rs::types::{CycleEnum, TimeFrame, Transaction, TransactionType};
+use strum::{EnumIter, FromRepr};
+
+use crate::pages::PageState;
+use crate::{app::App, components::inputs::*, components::*};
+
+/*
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Transactions                                                                │
+│                                                                             │
+│ ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐             │
+│ │ TRANSACTIONS     │ │ BUYS             │ │ SELLS            │             │
+│ │       128        │ │        76        │ │        52        │             │
+│ └──────────────────┘ └──────────────────┘ └──────────────────┘             │
+│                                                                             │
+│ ┌─────────────────────────────────────────────────────────────────────────┐ │
+│ │ Period: [ All Time ▼ ]    Type: [ All ▼ ]    Asset: [ All ▼ ]           │ │
+│ └─────────────────────────────────────────────────────────────────────────┘ │
+│                                                                             │
+│ ┌────────────┬──────────┬──────────────┬───────────┬──────────┬───────────┐ │
+│ │ DATE       │ TYPE     │ ASSET        │ QUANTITY  │ PRICE    │ TOTAL     │ │
+│ ├────────────┼──────────┼──────────────┼───────────┼──────────┼───────────┤ │
+│ │ 11.08.2026 │ BUY      │ AAPL         │ 10        │ 201.50 € │ 2,015 €   │ │
+│ │ 08.08.2026 │ SELL     │ MSFT         │ 5         │ 512.20 € │ 2,561 €   │ │
+│ │ 02.08.2026 │ BUY      │ VWCE         │ 15        │ 142.80 € │ 2,142 €   │ │
+│ │ 28.07.2026 │ BUY      │ NVDA         │ 8         │ 171.30 € │ 1,370 €   │ │
+│ │ ...        │ ...      │ ...          │ ...       │ ...      │ ...       │ │
+│ └────────────┴──────────┴──────────────┴───────────┴──────────┴───────────┘ │
+│                                                                             │
+│                         ← 1  2  3  4  5 →                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+*/
+#[derive(Debug, Default)]
+pub struct TransactionState {
+    pub period: Period,
+    pub transaction_type: TransactionTypeFilter,
+    pub ticker: String,
+    pub transaction_table: TableState,
+}
+
+#[derive(Debug, Default, PartialEq, Copy, Clone, EnumIter)]
+pub enum TransactionTypeFilter {
+    #[default]
+    All,
+    Buy,
+    Sell,
+}
+
+impl CycleEnum for TransactionTypeFilter {}
+
+impl Display for TransactionTypeFilter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TransactionTypeFilter::All => write!(f, "All"),
+            TransactionTypeFilter::Buy => write!(f, "Buy"),
+            TransactionTypeFilter::Sell => write!(f, "Sell"),
+        }
+    }
+}
+
+type Period = stonks_rs::types::TimeFrame;
+
+#[derive(Debug, Default)]
+pub struct TransactionPage {
+    pub filters: TransactionState,
+    pub _ui_areas: TransactionUiAreas,
+}
+
+#[derive(Debug)]
+pub struct FilterAreas {
+    pub _period: Rect,
+    pub _transaction_type: Rect,
+    pub _asset: Rect,
+}
+
+#[derive(Debug, Default)]
+pub struct TransactionUiAreas {
+    pub filters: Option<FilterAreas>,
+}
+
+fn render_transaction_count(app: &App, frame: &mut Frame, area: Rect) {
+    let total_count = app.transactions.len();
+    let (buy_count, sell_count) = get_transaction_type_count(&app.transactions);
+
+    let areas = Layout::horizontal([
+        Constraint::Percentage(33),
+        Constraint::Percentage(34),
+        Constraint::Percentage(33),
+    ])
+    .split(area);
+
+    card::render(
+        frame,
+        areas[0],
+        app,
+        " Total Transactions ",
+        total_count.to_string(),
+        None,
+    );
+
+    card::render(
+        frame,
+        areas[1],
+        app,
+        " Buys ",
+        buy_count.to_string(),
+        Some(Style::default().fg(app.theme.success)),
+    );
+    card::render(
+        frame,
+        areas[2],
+        app,
+        " Sells ",
+        sell_count.to_string(),
+        Some(Style::default().fg(app.theme.error)),
+    );
+}
+
+fn get_transaction_type_count(tx: &[Transaction]) -> (u64, u64) {
+    let mut buy_transactions = 0;
+    let mut sell_transactions = 0;
+
+    for t in tx.iter() {
+        match t.transaction_type {
+            stonks_rs::types::TransactionType::Buy => buy_transactions += 1,
+            stonks_rs::types::TransactionType::Sell => sell_transactions += 1,
+        }
+    }
+
+    (buy_transactions, sell_transactions)
+}
+
+fn is_currently_focused(current: Option<InputFocus>, check: InputFocus) -> bool {
+    if let Some(focus) = current {
+        return focus == check;
+    }
+    false
+}
+
+fn today() -> NaiveDate {
+    chrono::Local::now().date_naive()
+}
+
+fn filter_transactions(app: &App, transactions: &mut Vec<Transaction>) {
+    let ticker = app.transaction_page.filters.ticker.to_lowercase();
+
+    transactions.retain(|tx| {
+        let matches_period = match app.transaction_page.filters.period {
+            TimeFrame::OneDay => tx.trade_date >= today() - chrono::Duration::days(1),
+            TimeFrame::OneWeek => tx.trade_date >= today() - chrono::Duration::days(7),
+            TimeFrame::OneMonth => tx.trade_date >= today() - chrono::Duration::days(30),
+            TimeFrame::ThreeMonth => tx.trade_date >= today() - chrono::Duration::days(90),
+            TimeFrame::SixMonth => tx.trade_date >= today() - chrono::Duration::days(180),
+            TimeFrame::YearToDate => tx.trade_date.year() == today().year(),
+            TimeFrame::OneYear => tx.trade_date >= today() - chrono::Duration::days(365),
+            TimeFrame::FiveYear => tx.trade_date >= today() - chrono::Duration::days(365 * 5),
+            TimeFrame::Max => true,
+
+            // Für die Transaktionstabelle vermutlich irrelevant:
+            TimeFrame::OneMinute | TimeFrame::OneHour => true,
+        };
+
+        let matches_type = match app.transaction_page.filters.transaction_type {
+            TransactionTypeFilter::All => true,
+            TransactionTypeFilter::Sell => tx.transaction_type == TransactionType::Sell,
+            TransactionTypeFilter::Buy => tx.transaction_type == TransactionType::Buy,
+        };
+        let matches_ticker = ticker.is_empty() || tx.ticker.to_lowercase().contains(&ticker);
+
+        matches_period && matches_type && matches_ticker
+    });
+}
+
+pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
+    let currently_focused = match &app.focused_field {
+        CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
+        _ => None,
+    };
+    let areas = Layout::vertical([
+        Constraint::Percentage(10),
+        Constraint::Percentage(15),
+        Constraint::Fill(1),
+    ])
+    .split(area);
+
+    render_transaction_count(app, frame, areas[0]);
+
+    let transaction_filter_areas = render_filter_bar(app, frame, areas[1]);
+    let table_header = vec![
+        Cell::from("ID"),
+        Cell::from("Date"),
+        Cell::from("Ticker"),
+        Cell::from("Type"),
+        Cell::from("Quantity"),
+        Cell::from("Price"),
+        Cell::from("Currency"),
+        Cell::from("Fees"),
+    ];
+    let mut transactions = app.transactions.clone();
+
+    transactions.sort_by(|a, b| {
+        if a.trade_date == b.trade_date {
+            cmp::Ordering::Equal
+        } else if a.trade_date < b.trade_date {
+            cmp::Ordering::Less
+        } else {
+            cmp::Ordering::Greater
+        }
+    });
+
+    transactions.reverse();
+
+    filter_transactions(app, &mut transactions);
+
+    let table_rows = transactions.iter().map(|tx| {
+        Row::new(vec![
+            Cell::from(tx.id.unwrap().to_string()),
+            Cell::from(tx.trade_date.to_string()),
+            Cell::from(tx.ticker.clone()),
+            Cell::from(Span::styled(
+                tx.transaction_type.to_string(),
+                Style::default().fg(if tx.transaction_type == TransactionType::Buy {
+                    app.theme.success
+                } else {
+                    app.theme.error
+                }),
+            )),
+            Cell::from(tx.quantity.to_string()),
+            Cell::from(tx.price.round_dp(2).to_string()),
+            Cell::from(tx.currency.to_string()),
+            Cell::from(tx.fees.to_string()),
+        ])
+    });
+
+    let PageState::Transaction(state) = &mut app.page_state else {
+        todo!()
+    };
+
+    table::render(
+        frame,
+        areas[2],
+        "[4] Transactions",
+        table_header,
+        table_rows,
+        is_currently_focused(currently_focused.copied(), InputFocus::Table),
+        &mut state.transaction_table,
+        app.theme.clone(),
+    );
+    let transaction_ui_areas = TransactionUiAreas {
+        filters: Some(transaction_filter_areas),
+    };
+    app.ui_areas.transaction_page = Some(transaction_ui_areas);
+}
+
+pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterAreas {
+    let currently_focused = match &app.focused_field {
+        CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
+        _ => None,
+    };
+
+    let block = Block::default()
+        .title(Span::styled(
+            " Filters ",
+            Style::default().fg(app.theme.text),
+        ))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(app.theme.border));
+
+    let inner = block.inner(area);
+
+    frame.render_widget(block, area);
+
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+            Constraint::Fill(1),
+        ])
+        .spacing(2)
+        .split(inner);
+
+    select::render_select(
+        frame,
+        chunks[0],
+        "[1] Period",
+        app.transaction_page.filters.period.to_string(),
+        is_currently_focused(currently_focused.copied(), InputFocus::Period),
+        app.input_mode,
+        &app.theme,
+    );
+
+    select::render_select(
+        frame,
+        chunks[1],
+        "[2] Type",
+        app.transaction_page.filters.transaction_type.to_string(),
+        is_currently_focused(currently_focused.copied(), InputFocus::TransactionType),
+        app.input_mode,
+        &app.theme,
+    );
+
+    input::render_input(
+        frame,
+        chunks[2],
+        "[3] Ticker",
+        &app.transaction_page.filters.ticker.to_string(),
+        is_currently_focused(currently_focused.copied(), InputFocus::Ticker),
+        app.input_mode,
+        &app.theme,
+    );
+
+    FilterAreas {
+        _period: chunks[0],
+        _transaction_type: chunks[1],
+        _asset: chunks[2],
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromRepr, EnumIter)]
+pub enum InputFocus {
+    #[default]
+    Period,
+    TransactionType,
+    Ticker,
+    Table,
+}
+
+impl CycleEnum for InputFocus {}
+
+pub fn handle_input_char(app: &mut App, field: InputFocus, c: char) {
+    match field {
+        InputFocus::Ticker => {
+            app.transaction_page.filters.ticker.push(c);
+        }
+
+        InputFocus::TransactionType | InputFocus::Period | InputFocus::Table => {}
+    }
+}
+
+pub fn handle_input_backspace(app: &mut App, field: InputFocus) {
+    match field {
+        InputFocus::Ticker => {
+            app.transaction_page.filters.ticker.pop();
+        }
+
+        InputFocus::TransactionType | InputFocus::Period | InputFocus::Table => {}
+    }
+}

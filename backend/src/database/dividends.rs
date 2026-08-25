@@ -3,6 +3,7 @@ use rusqlite::Connection;
 
 use crate::types::Dividend;
 
+#[allow(dead_code)]
 pub fn delete_dividend(db_conn: &Connection, id: i64) -> Result<()> {
     let _ = db_conn.execute(
         "DELETE FROM dividends
@@ -13,6 +14,7 @@ pub fn delete_dividend(db_conn: &Connection, id: i64) -> Result<()> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn edit_dividend(db_conn: &Connection, dividend: Dividend) -> Result<Dividend> {
     println!("{:?}", dividend);
     let new_dividend = db_conn.query_row(
@@ -47,6 +49,7 @@ pub fn edit_dividend(db_conn: &Connection, dividend: Dividend) -> Result<Dividen
     Ok(new_dividend)
 }
 
+#[allow(dead_code)]
 pub fn load_all_dividends_from_db(db_conn: &Connection) -> Result<Vec<Dividend>> {
     let mut stmt = db_conn.prepare(
         "

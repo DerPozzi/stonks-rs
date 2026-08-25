@@ -3,7 +3,7 @@ use rusqlite::Connection;
 
 use crate::{
     database::{
-        database::create_tables,
+        db::create_tables,
         transactions::{
             add_transaction, delete_transaction, edit_transaction, load_all_transactions_from_db,
         },
