@@ -1,21 +1,22 @@
 use ratatui::{
     Frame,
-    layout::{Constraint, Rect},
+    layout::{Alignment, Constraint, Rect},
     style::{Modifier, Style},
-    text::Span,
-    widgets::{Block, BorderType, Borders, Cell, Row, Table},
+    text::{Line, Span},
+    widgets::{Block, BorderType, Borders, Cell, Row, Table, TableState},
 };
 
-use crate::app::App;
+use crate::theme::Theme;
 
 pub fn render<'a, I>(
-    app: &App,
     frame: &mut Frame,
     area: Rect,
     label: &str,
     header: Vec<Cell<'_>>,
     rows: I,
     focused: bool,
+    table_state: &mut TableState,
+    theme: Theme,
 ) where
     I: IntoIterator<Item = Row<'a>>,
 {
@@ -23,10 +24,16 @@ pub fn render<'a, I>(
     let header = Row::new(header)
         .style(
             Style::default()
-                .fg(app.theme.primary)
+                .fg(theme.primary)
                 .add_modifier(Modifier::BOLD),
         )
         .bottom_margin(1);
+
+    let footer = Line::from(vec![
+        Span::styled("↑↓", Style::default().fg(theme.primary)),
+        Span::raw(" Navigate"),
+    ])
+    .right_aligned();
 
     let table = Table::new(rows, widths)
         .header(header)
@@ -35,20 +42,22 @@ pub fn render<'a, I>(
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
                 .border_style(Style::default().fg(if focused {
-                    app.theme.primary
+                    theme.primary
                 } else {
-                    app.theme.border
+                    theme.border
                 }))
                 .title(Span::styled(
                     format!(" {label} "),
-                    Style::default().fg(if !focused {
-                        app.theme.text
-                    } else {
-                        app.theme.primary
-                    }),
-                )),
+                    Style::default().fg(if !focused { theme.text } else { theme.primary }),
+                ))
+                .title_bottom(if focused {
+                    footer
+                } else {
+                    Span::raw("").into()
+                }),
         )
-        .column_spacing(5);
+        .column_spacing(1)
+        .row_highlight_style(Style::default().bg(theme.background));
 
-    frame.render_widget(table, area);
+    frame.render_stateful_widget(table, area, table_state);
 }

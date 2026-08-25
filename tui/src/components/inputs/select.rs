@@ -7,35 +7,36 @@ use ratatui::{
 };
 use stonks_rs::types::CycleEnum;
 
-use crate::app::App;
+use crate::theme::Theme;
 
 pub fn render_select(
-    app: &App,
     frame: &mut Frame,
     area: Rect,
     title: &str,
     value: String,
     focused: bool,
+    input_text: bool,
+    theme: &Theme,
 ) {
-    let border_color = if focused && app.input_text {
-        app.theme.primary
+    let border_color = if focused && input_text {
+        theme.primary
     } else if focused {
-        app.theme.secondary
+        theme.secondary
     } else {
-        app.theme.border
+        theme.border
     };
 
     let title_style = if focused {
         Style::default()
-            .fg(app.theme.primary)
+            .fg(theme.primary)
             .add_modifier(Modifier::BOLD)
     } else {
-        Style::default().fg(app.theme.text)
+        Style::default().fg(theme.text)
     };
 
     let line = Line::from(vec![
-        Span::styled(value, Style::default().fg(app.theme.text)),
-        Span::styled(" ▼", Style::default().fg(app.theme.muted)),
+        Span::styled(value, Style::default().fg(theme.text)),
+        Span::styled(" ▼", Style::default().fg(theme.muted)),
     ]);
 
     let widget = Paragraph::new(line)
