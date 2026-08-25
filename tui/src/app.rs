@@ -55,10 +55,9 @@ fn load_config(path: PathBuf) -> Result<Settings> {
         let content =
             toml::to_string_pretty(&defaults).expect("Failed to serialize default config");
 
-        println!("{}", content);
-
         std::fs::write(&path, content)
             .unwrap_or_else(|_| panic!("Failed to write config to {}", path.display()));
+        tracing::info!("Written default config to {}", path.display());
     }
 
     let config = Config::builder().add_source(File::from(path)).build()?;
