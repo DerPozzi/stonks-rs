@@ -6,14 +6,14 @@ on:
       - main
     paths:
       - "tui/**"
-      - ".github/workflows/tui.yaml"
+      - ".github/workflows/tui.yml"
 
   pull_request:
     branches:
       - main
     paths:
       - "tui/**"
-      - ".github/workflows/tui.yaml"
+      - ".github/workflows/tui.yml"
 
 jobs:
   backend:
