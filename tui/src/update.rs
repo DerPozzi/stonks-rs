@@ -5,7 +5,8 @@ use rust_decimal::Decimal;
 use stonks_rs::types::{Currency, TickerData, Transaction};
 use tokio::sync::mpsc;
 
-use crate::app::{App, CurrentFocus};
+use crate::app::App;
+use crate::components::inputs::CurrentFocus;
 use crate::pages::Page;
 
 pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
@@ -70,10 +71,11 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
         }
 
         // Add Transaction
-        KeyCode::Char('a') => match app.current_page {
-            Page::Transactions => app.add_transaction(),
-            _ => {}
-        },
+        KeyCode::Char('a') => {
+            if app.current_page == Page::Transactions {
+                app.add_transaction()
+            }
+        }
 
         // Transaction speichern
         KeyCode::Char('s') if app.current_page == Page::AddTransaction => {
@@ -104,13 +106,12 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
                 }
             }
         }
-        KeyCode::Char('c') => match app.current_page {
-            Page::AddTransaction => {
+        KeyCode::Char('c') => {
+            if app.current_page == Page::AddTransaction {
                 app.current_page = Page::Transactions;
                 app.current_page_focused = false;
             }
-            _ => {}
-        },
+        }
         // Esc
         KeyCode::Esc => {
             if app.input_mode {
@@ -197,7 +198,7 @@ pub fn start_update_task() -> (
                 UpdateRequest::TickerData(t, tx, curr) => {
                     match stonks_rs::service::service::get_ticker_info(t, &tx, Some(curr)).await {
                         Ok(ticker_data) => {
-                            let _ = message_tx
+                            message_tx
                                 .send(UpdateMessage::Ticker {
                                     ticker: ticker_data.ticker.clone(),
                                     data: ticker_data,

@@ -1,4 +1,3 @@
-use chrono::NaiveDate;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -7,17 +6,14 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
 };
 
-use strum::{EnumIter, FromRepr, IntoEnumIterator};
+use strum::{EnumIter, FromRepr};
 
 use crate::{
     app::App,
-    components::inputs::{
-        input::render_input,
-        select::{cycle_enum, render_select},
-    },
+    components::inputs::{CurrentFocus, input::*, select::render_select},
 };
 
-use stonks_rs::types::{Currency, TransactionType};
+use stonks_rs::types::{Currency, CycleEnum, TransactionType};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, FromRepr, EnumIter)]
 pub enum InputFocus {
@@ -32,23 +28,7 @@ pub enum InputFocus {
     Taxes,
 }
 
-impl crate::app::InputFocus for InputFocus {
-    fn next(&self) -> Self {
-        let items: Vec<_> = Self::iter().collect();
-
-        let index = items.iter().position(|x| x == self).unwrap();
-
-        items[(index + 1) % items.len()]
-    }
-
-    fn previous(&self) -> Self {
-        let items: Vec<_> = Self::iter().collect();
-
-        let index = items.iter().position(|x| x == self).unwrap();
-
-        items[(index + items.len() - 1) % items.len()]
-    }
-}
+impl CycleEnum for InputFocus {}
 
 #[derive(Debug)]
 pub struct CreateTransaction {
@@ -112,7 +92,7 @@ fn is_currently_focused(current: Option<&InputFocus>, check: InputFocus) -> bool
 
 pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     let currently_focused = match &app.focused_field {
-        crate::app::CurrentFocus::AddTransaction(input_focus) => Some(input_focus),
+        CurrentFocus::AddTransaction(input_focus) => Some(input_focus),
         _ => None,
     };
 
@@ -382,11 +362,11 @@ pub fn handle_input_backspace(app: &mut App, field: InputFocus) {
 pub fn handle_selector_tab(app: &mut App, field: InputFocus) {
     match field {
         InputFocus::TransactionType => {
-            cycle_enum(&mut app.create_transaction.transaction_type);
+            &mut app.create_transaction.transaction_type.next();
         }
 
         InputFocus::Currency => {
-            cycle_enum(&mut app.create_transaction.currency);
+            &mut app.create_transaction.currency.next();
         }
 
         _ => {}

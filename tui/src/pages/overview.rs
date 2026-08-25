@@ -35,7 +35,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         return;
     }
 
-    entries.sort_by(|(_, a), (_, b)| a.unrealized_gain.cmp(&b.unrealized_gain));
+    entries.sort_by_key(|(_, a)| a.unrealized_gain);
     entries.reverse();
 
     let table_header = vec![
@@ -65,32 +65,32 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
             // Cell::from(t.to_uppercase()),
             Cell::from(format!(
                 "{} {}",
-                tx.cost_basis.round_dp(2).to_string(),
+                tx.cost_basis.round_dp(2),
                 app.settings.default.currency
             )),
             Cell::from(format!(
                 "{} {}",
-                tx.market_value.round_dp(2).to_string(),
+                tx.market_value.round_dp(2),
                 app.settings.default.currency
             )),
             Cell::from(Span::styled(
                 format!(
                     "{} {} | {} %",
-                    tx.unrealized_gain.round_dp(2).to_string(),
+                    tx.unrealized_gain.round_dp(2),
                     app.settings.default.currency,
-                    tx.unrealized_gain_perc.round_dp(2).to_string()
+                    tx.unrealized_gain_perc.round_dp(2)
                 ),
                 gain_style,
             )),
             Cell::from(format!(
                 "{} @ {} {}",
-                tx.total_shares.round_dp(2).to_string(),
-                tx.avg_cost.round_dp(2).to_string(),
+                tx.total_shares.round_dp(2),
+                tx.avg_cost.round_dp(2),
                 app.settings.default.currency
             )),
             Cell::from(format!(
                 "{} {}",
-                tx.current_price.round_dp(2).to_string(),
+                tx.current_price.round_dp(2),
                 app.settings.default.currency
             )),
         ])

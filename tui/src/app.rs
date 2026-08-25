@@ -14,11 +14,12 @@ use rust_decimal_macros::dec;
 use serde::{Deserialize, Serialize};
 use stonks_rs::{
     service::{helpers::get_all_transactions, service::init_db},
-    types::{Connection, Currency, TickerData, Transaction},
+    types::{Connection, Currency, CycleEnum, TickerData, Transaction},
 };
 use tokio::sync::mpsc;
 
 use crate::{
+    components::inputs::{CurrentFocus, select},
     pages::{
         self, Page, PageState,
         add_transaction::CreateTransaction,
@@ -92,47 +93,6 @@ pub enum Action {
 #[derive(Debug, Default)]
 pub struct UiAreas {
     pub transaction_page: Option<TransactionUiAreas>,
-}
-
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-pub enum CurrentFocus {
-    #[default]
-    None,
-    TransactionPage(pages::transactions::InputFocus),
-    AddTransaction(pages::add_transaction::InputFocus),
-}
-
-impl InputFocus for CurrentFocus {
-    fn previous(&self) -> Self {
-        match self {
-            CurrentFocus::TransactionPage(input_focus) => {
-                CurrentFocus::TransactionPage(input_focus.previous())
-            }
-
-            CurrentFocus::AddTransaction(input_focus) => {
-                CurrentFocus::AddTransaction(input_focus.previous())
-            }
-            CurrentFocus::None => CurrentFocus::None,
-        }
-    }
-
-    fn next(&self) -> Self {
-        match self {
-            CurrentFocus::TransactionPage(input_focus) => {
-                CurrentFocus::TransactionPage(input_focus.next())
-            }
-
-            CurrentFocus::AddTransaction(input_focus) => {
-                CurrentFocus::AddTransaction(input_focus.next())
-            }
-            CurrentFocus::None => CurrentFocus::None,
-        }
-    }
-}
-
-pub trait InputFocus {
-    fn previous(&self) -> Self;
-    fn next(&self) -> Self;
 }
 
 #[derive(Debug, Default)]
@@ -390,6 +350,33 @@ impl App {
     }
     pub fn handle_tab(&mut self) {
         if self.input_mode {
+            match self.focused_field {
+                CurrentFocus::TransactionPage(input_focus) => match input_focus {
+                    pages::transactions::InputFocus::TransactionType => {
+                        self.transaction_page.filters.transaction_type =
+                            self.transaction_page.filters.transaction_type.next();
+                    }
+
+                    pages::transactions::InputFocus::Period => {
+                        self.transaction_page.filters.period =
+                            self.transaction_page.filters.period.next();
+                    }
+                    _ => {}
+                },
+                CurrentFocus::AddTransaction(input_focus) => match input_focus {
+                    pages::add_transaction::InputFocus::TransactionType => {
+                        self.create_transaction.transaction_type =
+                            self.create_transaction.transaction_type.next();
+                    }
+
+                    pages::add_transaction::InputFocus::Currency => {
+                        self.create_transaction.currency = self.create_transaction.currency.next();
+                    }
+
+                    _ => {}
+                },
+                _ => {}
+            }
             return;
         }
         self.focused_field = self.focused_field.next()
@@ -398,6 +385,34 @@ impl App {
 
     pub fn handle_shift_tab(&mut self) {
         if self.input_mode {
+            match self.focused_field {
+                CurrentFocus::TransactionPage(input_focus) => match input_focus {
+                    pages::transactions::InputFocus::TransactionType => {
+                        self.transaction_page.filters.transaction_type =
+                            self.transaction_page.filters.transaction_type.previous();
+                    }
+
+                    pages::transactions::InputFocus::Period => {
+                        self.transaction_page.filters.period =
+                            self.transaction_page.filters.period.previous();
+                    }
+                    _ => {}
+                },
+                CurrentFocus::AddTransaction(input_focus) => match input_focus {
+                    pages::add_transaction::InputFocus::TransactionType => {
+                        self.create_transaction.transaction_type =
+                            self.create_transaction.transaction_type.previous();
+                    }
+
+                    pages::add_transaction::InputFocus::Currency => {
+                        self.create_transaction.currency =
+                            self.create_transaction.currency.previous();
+                    }
+
+                    _ => {}
+                },
+                _ => {}
+            }
             return;
         }
         self.focused_field = self.focused_field.previous()

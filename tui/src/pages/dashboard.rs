@@ -52,7 +52,7 @@ use crate::components::*;
 pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     // Dashboard rendern
 
-    let mut assets: Vec<_> = app.portfolio.ticker_info.iter().map(|(_, td)| td).collect();
+    let mut assets: Vec<_> = app.portfolio.ticker_info.values().collect();
 
     assets.sort_by(|a, b| a.todays_change.cmp(&b.unrealized_gain));
 
@@ -72,7 +72,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         } else {
             "Loading".to_string()
         },
-        if let Some(_) = app.portfolio.value {
+        if app.portfolio.value.is_some() {
             app.settings.default.currency.to_string()
         } else {
             String::new()
@@ -94,8 +94,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         " Worst Performers ",
         assets
             .iter()
-            .filter(|td| td.todays_change <= Decimal::ZERO)
-            .map(|td| *td)
+            .filter(|td| td.todays_change <= Decimal::ZERO).copied()
             .take(3)
             .collect(),
     );
@@ -107,8 +106,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         " Top Performers ",
         assets
             .iter()
-            .filter(|td| td.todays_change > Decimal::ZERO)
-            .map(|td| *td)
+            .filter(|td| td.todays_change > Decimal::ZERO).copied()
             .take(3)
             .collect(),
     );

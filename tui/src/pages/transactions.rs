@@ -143,9 +143,9 @@ fn get_transaction_type_count(tx: &[Transaction]) -> (u64, u64) {
     (buy_transactions, sell_transactions)
 }
 
-fn is_currently_focused(current: Option<&InputFocus>, check: InputFocus) -> bool {
+fn is_currently_focused(current: Option<InputFocus>, check: InputFocus) -> bool {
     if let Some(focus) = current {
-        return *focus == check;
+        return focus == check;
     }
     false
 }
@@ -186,7 +186,7 @@ fn filter_transactions(app: &App, transactions: &mut Vec<Transaction>) {
 
 pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     let currently_focused = match &app.focused_field {
-        crate::app::CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
+        CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
         _ => None,
     };
     let areas = Layout::vertical([
@@ -255,7 +255,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         "[4] Transactions",
         table_header,
         table_rows,
-        is_currently_focused(currently_focused, InputFocus::Table),
+        is_currently_focused(currently_focused.copied(), InputFocus::Table),
         &mut state.transaction_table,
         app.theme.clone(),
     );
@@ -267,7 +267,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
 
 pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterAreas {
     let currently_focused = match &app.focused_field {
-        crate::app::CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
+        CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
         _ => None,
     };
 
@@ -299,7 +299,7 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         chunks[0],
         "[1] Period",
         app.transaction_page.filters.period.to_string(),
-        is_currently_focused(currently_focused, InputFocus::Period),
+        is_currently_focused(currently_focused.copied(), InputFocus::Period),
         app.input_mode,
         &app.theme,
     );
@@ -309,7 +309,7 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         chunks[1],
         "[2] Type",
         app.transaction_page.filters.transaction_type.to_string(),
-        is_currently_focused(currently_focused, InputFocus::TransactionType),
+        is_currently_focused(currently_focused.copied(), InputFocus::TransactionType),
         app.input_mode,
         &app.theme,
     );
@@ -319,7 +319,7 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         chunks[2],
         "[3] Ticker",
         &app.transaction_page.filters.ticker.to_string(),
-        is_currently_focused(currently_focused, InputFocus::Ticker),
+        is_currently_focused(currently_focused.copied(), InputFocus::Ticker),
         app.input_mode,
         &app.theme,
     );
@@ -340,23 +340,7 @@ pub enum InputFocus {
     Table,
 }
 
-impl crate::app::InputFocus for InputFocus {
-    fn next(&self) -> Self {
-        let items: Vec<_> = Self::iter().collect();
-
-        let index = items.iter().position(|x| x == self).unwrap();
-
-        items[(index + 1) % items.len()]
-    }
-
-    fn previous(&self) -> Self {
-        let items: Vec<_> = Self::iter().collect();
-
-        let index = items.iter().position(|x| x == self).unwrap();
-
-        items[(index + items.len() - 1) % items.len()]
-    }
-}
+impl CycleEnum for InputFocus {}
 
 pub fn handle_input_char(app: &mut App, field: InputFocus, c: char) {
     match field {
@@ -381,11 +365,12 @@ pub fn handle_input_backspace(app: &mut App, field: InputFocus) {
 pub fn handle_selector_tab(app: &mut App, field: InputFocus) {
     match field {
         InputFocus::TransactionType => {
-            select::cycle_enum(&mut app.transaction_page.filters.transaction_type);
+            app.transaction_page.filters.transaction_type =
+                app.transaction_page.filters.transaction_type.next();
         }
 
         InputFocus::Period => {
-            select::cycle_enum(&mut app.transaction_page.filters.period);
+            app.transaction_page.filters.period = app.transaction_page.filters.period.next();
         }
 
         _ => {}

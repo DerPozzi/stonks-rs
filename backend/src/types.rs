@@ -12,12 +12,20 @@ use strum::{EnumIter, IntoEnumIterator};
 pub type Connection = rusqlite::Connection;
 
 pub trait CycleEnum: Copy + PartialEq + IntoEnumIterator {
-    fn cycle(self) -> Self {
-        let values: Vec<Self> = Self::iter().collect();
+    fn next(&self) -> Self {
+        let items: Vec<_> = Self::iter().collect();
 
-        let index = values.iter().position(|value| *value == self).unwrap_or(0);
+        let index = items.iter().position(|x| x == self).unwrap();
 
-        values[(index + 1) % values.len()]
+        items[(index + 1) % items.len()]
+    }
+
+    fn previous(&self) -> Self {
+        let items: Vec<_> = Self::iter().collect();
+
+        let index = items.iter().position(|x| x == self).unwrap();
+
+        items[(index + items.len() - 1) % items.len()]
     }
 }
 

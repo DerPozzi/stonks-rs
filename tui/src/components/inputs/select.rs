@@ -5,7 +5,6 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Paragraph},
 };
-use stonks_rs::types::CycleEnum;
 
 use crate::theme::Theme;
 
@@ -50,8 +49,4 @@ pub fn render_select(
         .alignment(Alignment::Left);
 
     frame.render_widget(widget, area);
-}
-
-pub fn cycle_enum<T: CycleEnum>(value: &mut T) {
-    *value = value.cycle();
 }
