@@ -15,8 +15,6 @@ pub struct OverviewState {
 }
 
 pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
-    let _test = Paragraph::new(format!("{:#?}", app.portfolio.ticker_info));
-
     let mut entries: Vec<_> = app.portfolio.ticker_info.iter().collect();
 
     if entries.is_empty() {

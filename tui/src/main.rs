@@ -21,18 +21,14 @@ mod update;
 fn init_logger() -> Result<()> {
     let home_path = dirs::home_dir().expect("Couldn't get users home dir");
 
-    if let Some(parent) = home_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
+    let log_dir = home_path.join(".stonks-rs");
+    std::fs::create_dir_all(&log_dir)?;
 
     let log_file = OpenOptions::new()
         .create(true)
         .write(true)
         .truncate(true)
-        .open(format!(
-            "{}stonks.log",
-            home_path.join(".stonks-rs/").display()
-        ))?;
+        .open(log_dir.join("stonks.log"))?;
 
     tracing_subscriber::fmt().with_writer(log_file).init();
 

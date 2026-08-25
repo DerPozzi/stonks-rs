@@ -62,6 +62,10 @@ pub fn calc_unrealized_gain_perc(
     let unrealized_gain = calc_unrealized_gain(transactions, ticker, current_price)?;
     let cost_basis = calc_cost_basis(transactions, ticker);
 
+    if cost_basis == dec!(0.0) {
+        return Err(anyhow::anyhow!("Cost basis was 0.0"));
+    }
+
     Ok(unrealized_gain / cost_basis * dec!(100))
 }
 

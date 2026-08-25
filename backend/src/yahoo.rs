@@ -99,15 +99,19 @@ pub async fn get_todays_change(t: &str) -> Result<Decimal> {
 
     let quotes = response.quotes()?;
 
-    let previous_day = quotes.get(quotes.len() - 2);
-    let current = quotes.last();
-
-    if let (Some(previous), Some(current)) = (previous_day, current) {
-        let change = current.close - previous.close;
-        let change_percent = Decimal::from_f64_retain(change / previous.close).unwrap()
-            * rust_decimal_macros::dec!(100);
-        return Ok(change_percent);
+    if quotes.len() < 2 {
+        return Ok(rust_decimal_macros::dec!(0));
     }
 
-    Ok(rust_decimal_macros::dec!(0))
+    let previous = &quotes[quotes.len() - 2];
+    let current = quotes.last().expect("quotes.len() checked");
+    if previous.close == 0.0 {
+        return Ok(rust_decimal_macros::dec!(0));
+    }
+
+    let change_percent_f = (current.close - previous.close) / previous.close;
+    let Some(change_percent) = Decimal::from_f64_retain(change_percent_f) else {
+        return Ok(rust_decimal_macros::dec!(0));
+    };
+    Ok(change_percent * rust_decimal_macros::dec!(100))
 }

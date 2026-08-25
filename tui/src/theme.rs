@@ -87,12 +87,10 @@ pub fn load_theme(config_dir: &Path, name: Option<&str>) -> Result<Theme> {
         return Ok(Theme::default());
     };
 
-    let path = config_dir.join("themes/").join(format!("{name}.toml"));
+    let path = config_dir.join("themes").join(format!("{name}.toml"));
 
-    println!("{}", path.display());
-
-    let content =
-        std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("Failed to read theme '{name}'"));
+    let content = std::fs::read_to_string(&path)
+        .map_err(|e| anyhow::anyhow!("Failed to read theme '{name}' at {}: {e}", path.display()))?;
 
     let config: ThemeConfig = toml::from_str(&content)?;
 

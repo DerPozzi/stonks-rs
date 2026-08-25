@@ -250,10 +250,10 @@ impl App {
             ticker: trans.ticker.clone(),
             transaction_type: trans.transaction_type,
             trade_date: NaiveDate::parse_from_str(&trans.trade_date_input, "%Y-%m-%d").unwrap(),
-            quantity: Decimal::try_from(trans.quantity.parse::<f32>()?)?,
-            price: Decimal::try_from(trans.price.parse::<f32>()?)?,
+            quantity: trans.quantity.parse::<Decimal>()?,
+            price: trans.price.parse::<Decimal>()?,
             currency: trans.currency,
-            fees: Decimal::try_from(trans.fees.parse::<f32>()?)?,
+            fees: trans.fees.parse::<Decimal>()?,
         };
 
         match stonks_rs::service::helpers::add_transaction_to_list(

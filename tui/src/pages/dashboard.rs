@@ -54,9 +54,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
 
     let mut assets: Vec<_> = app.portfolio.ticker_info.values().collect();
 
-    assets.sort_by(|a, b| a.todays_change.cmp(&b.unrealized_gain));
-
-    // Areas anlegen
+    assets.sort_by(|a, b| a.todays_change.cmp(&b.todays_change));
 
     let areas = Layout::vertical([
         Constraint::Percentage(33),

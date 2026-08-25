@@ -198,12 +198,10 @@ pub fn start_update_task() -> (
                 UpdateRequest::TickerData(t, tx, curr) => {
                     match stonks_rs::service::stonks::get_ticker_info(t, &tx, Some(curr)).await {
                         Ok(ticker_data) => {
-                            message_tx
-                                .send(UpdateMessage::Ticker {
-                                    ticker: ticker_data.ticker.clone(),
-                                    data: ticker_data,
-                                })
-                                .unwrap();
+                            let _ = message_tx.send(UpdateMessage::Ticker {
+                                ticker: ticker_data.ticker.clone(),
+                                data: ticker_data,
+                            });
                         }
 
                         Err(error) => {
