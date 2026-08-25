@@ -3,7 +3,7 @@ use rusqlite::Connection;
 
 use crate::{
     database::{
-        database::create_tables,
+        db::create_tables,
         dividends::{add_dividend, delete_dividend, edit_dividend, load_all_dividends_from_db},
     },
     types::{Currency, Dividend},
