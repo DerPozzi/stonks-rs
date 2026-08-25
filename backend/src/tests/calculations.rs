@@ -13,7 +13,7 @@ use rust_decimal_macros::dec;
 const CURRENT_PRICE: Decimal = dec!(500);
 
 fn sample_transactions() -> Vec<Transaction> {
-    return vec![
+    vec![
         Transaction {
             id: None,
             ticker: "AMD".into(),
@@ -28,13 +28,13 @@ fn sample_transactions() -> Vec<Transaction> {
             id: None,
             ticker: "AMD".into(),
             transaction_type: TransactionType::Buy,
-            trade_date: NaiveDate::from_ymd_opt(2026, 07, 1).unwrap(),
+            trade_date: NaiveDate::from_ymd_opt(2026, 7, 1).unwrap(),
             quantity: dec!(0.02882124),
             price: dec!(14.53),
             currency: Currency::EUR,
             fees: dec!(0.02),
         },
-    ];
+    ]
 }
 
 #[test]
@@ -91,7 +91,7 @@ fn realized_gain() -> anyhow::Result<()> {
 }
 
 fn sample_dividends() -> Vec<Dividend> {
-    return vec![
+    vec![
         Dividend {
             id: None,
             ticker: "AMD".into(),
@@ -108,7 +108,7 @@ fn sample_dividends() -> Vec<Dividend> {
             taxes: dec!(3),
             currency: Currency::EUR,
         },
-    ];
+    ]
 }
 
 #[test]
