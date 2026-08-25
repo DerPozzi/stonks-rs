@@ -57,7 +57,7 @@ fn load_config(path: PathBuf) -> Result<Settings> {
 
         std::fs::write(&path, content)
             .unwrap_or_else(|_| panic!("Failed to write config to {}", path.display()));
-        tracing::info!("Written default config to {}", path.display());
+        tracing::info!("Wrote default config to {}", path.display());
     }
 
     let config = Config::builder().add_source(File::from(path)).build()?;
