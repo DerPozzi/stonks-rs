@@ -133,7 +133,14 @@ fn render_top_three(
             };
 
             Line::from(vec![
-                Span::styled(&ticker.name, Style::default().fg(app.theme.text)),
+                Span::styled(
+                    if let Some(name) = ticker.meta.long_name.as_ref() {
+                        name
+                    } else {
+                        ""
+                    },
+                    Style::default().fg(app.theme.text),
+                ),
                 Span::raw(" "),
                 Span::styled(
                     format!("{}%", ticker.todays_change.round_dp(2)),

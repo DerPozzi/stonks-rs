@@ -8,7 +8,7 @@ use anyhow::Result;
 use crate::{
     service::stonks::calc_shares,
     types::{Currency, Dividend, Transaction, TransactionType},
-    yahoo::{get_asset_currency, get_current_asset_price, get_exchange_rate},
+    yahoo::{get_exchange_rate, get_ticker_financial},
 };
 
 /*
@@ -120,10 +120,11 @@ pub async fn calc_portfolio_value(
     let mut total_portfolio_value = dec!(0);
 
     for ticker in tickers {
-        let current_price = get_current_asset_price(&ticker).await?;
-        let asset_currency = get_asset_currency(&ticker).await?;
+        let financial_data = get_ticker_financial(&ticker).await?;
+        let asset_currency = financial_data.currency;
 
-        let mut market_value = calc_market_value(transactions, &ticker, current_price)?;
+        let mut market_value =
+            calc_market_value(transactions, &ticker, financial_data.current_price)?;
 
         if let Some(target_currency) = target_currency
             && target_currency != asset_currency
@@ -143,8 +144,8 @@ pub async fn calc_portfolio_value(
 /// "How many percent of my total portfolio is asset x?"
 #[allow(dead_code)]
 pub async fn calc_portfolio_weight(transactions: &[Transaction], ticker: &str) -> Result<Decimal> {
-    let current_asset_price = get_current_asset_price(ticker).await?;
-    let market_value = calc_market_value(transactions, ticker, current_asset_price)?;
+    let financial_data = get_ticker_financial(ticker).await?;
+    let market_value = calc_market_value(transactions, ticker, financial_data.current_price)?;
     let portfolio_value = calc_portfolio_value(transactions, Some(Currency::EUR)).await?;
 
     let portfolio_weight = market_value / portfolio_value * dec!(100);
@@ -187,8 +188,9 @@ pub async fn calc_total_return(
     dividends: &[Dividend],
     ticker: &str,
 ) -> Result<Decimal> {
-    let current_price = get_current_asset_price(ticker).await?;
-    let unrealized_gains = calc_unrealized_gain(transactions, ticker, current_price)?;
+    let financial_data = get_ticker_financial(ticker).await?;
+    let unrealized_gains =
+        calc_unrealized_gain(transactions, ticker, financial_data.current_price)?;
     let realized_gains = calc_realized_gains(transactions, ticker)?;
     let net_dividends = calc_net_dividends(dividends, ticker);
 

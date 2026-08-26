@@ -263,11 +263,10 @@ pub struct Dividend {
 
 #[derive(Debug, Default)]
 pub struct TickerData {
-    pub name: String,
-    pub ticker: String,
-    pub current_price: Decimal,
-    pub cost_basis: Decimal,
+    pub meta: TickerMetaData,
+    pub financial: TickerFinancialData,
     pub market_value: Decimal,
+    pub cost_basis: Decimal,
     pub total_shares: Decimal,
     pub avg_cost: Decimal,
     pub unrealized_gain: Decimal,
@@ -278,11 +277,11 @@ pub struct TickerData {
 
 impl TickerData {
     pub fn update_from(&mut self, update: TickerData) {
-        if !update.name.is_empty() {
-            self.name = update.name;
+        if update.meta.long_name.is_some() {
+            self.meta.long_name = update.meta.long_name;
         }
 
-        self.current_price = update.current_price;
+        self.financial.current_price = update.financial.current_price;
         self.cost_basis = update.cost_basis;
         self.market_value = update.market_value;
         self.total_shares = update.total_shares;
@@ -292,4 +291,22 @@ impl TickerData {
         self.realized_gain = update.realized_gain;
         self.todays_change = update.todays_change;
     }
+}
+
+#[derive(Debug, Default)]
+pub struct TickerFinancialData {
+    pub current_price: Decimal,
+    pub currency: Currency,
+    pub non_regular_price: Option<Decimal>,
+    pub fifty_two_week_high: Option<Decimal>,
+    pub fifty_two_week_low: Option<Decimal>,
+}
+
+#[derive(Debug, Default)]
+pub struct TickerMetaData {
+    pub ticker: String,
+    pub long_name: Option<String>,
+    pub exhchange_name: Option<String>,
+    pub exchange_tz: Option<String>,
+    pub instrument_type: Option<String>,
 }

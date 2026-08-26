@@ -55,10 +55,10 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
             app.theme.error
         });
         Row::new(vec![
-            Cell::from(if tx.name.is_empty() {
-                "Loading name ...".to_string()
+            Cell::from(if let Some(long_name) = tx.meta.long_name.as_ref() {
+                long_name
             } else {
-                tx.name.clone()
+                "Loading ..."
             }),
             // Cell::from(t.to_uppercase()),
             Cell::from(format!(
@@ -88,7 +88,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
             )),
             Cell::from(format!(
                 "{} {}",
-                tx.current_price.round_dp(2),
+                tx.financial.current_price.round_dp(2),
                 app.settings.default.currency
             )),
         ])

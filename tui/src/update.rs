@@ -159,6 +159,7 @@ pub enum UpdateRequest {
 }
 
 /// Nachrichten vom Background-Task zurück zur App.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum UpdateMessage {
     PortfolioValue(Decimal),
@@ -180,40 +181,44 @@ pub fn start_update_task() -> (
 
     tokio::spawn(async move {
         while let Some(request) = request_rx.recv().await {
-            match request {
-                UpdateRequest::PortfolioValue(tx, curr) => {
-                    match stonks_rs::service::stonks::get_portfolio_value(&tx, Some(curr)).await {
-                        Ok(portfolio) => {
-                            let _ = message_tx.send(UpdateMessage::PortfolioValue(portfolio));
+            let message_tx = message_tx.clone();
+
+            tokio::spawn(async move {
+                match request {
+                    UpdateRequest::PortfolioValue(tx, curr) => {
+                        match stonks_rs::service::stonks::get_portfolio_value(&tx, Some(curr)).await
+                        {
+                            Ok(portfolio) => {
+                                let _ = message_tx.send(UpdateMessage::PortfolioValue(portfolio));
+                            }
+
+                            Err(error) => {
+                                tracing::error!("Failed to get portfolio value: {error}");
+
+                                let _ = message_tx.send(UpdateMessage::Error(error.to_string()));
+                            }
                         }
+                    }
 
-                        Err(error) => {
-                            tracing::error!("Failed to get portfolio value: {error}");
+                    UpdateRequest::TickerData(t, tx, curr) => {
+                        match stonks_rs::service::stonks::get_ticker_data(t, &tx, Some(curr)).await
+                        {
+                            Ok(ticker_data) => {
+                                let _ = message_tx.send(UpdateMessage::Ticker {
+                                    ticker: ticker_data.meta.ticker.clone(),
+                                    data: ticker_data,
+                                });
+                            }
 
-                            let _ = message_tx.send(UpdateMessage::Error(error.to_string()));
+                            Err(error) => {
+                                tracing::error!("Failed to get info for a ticker: {error}");
+
+                                let _ = message_tx.send(UpdateMessage::Error(error.to_string()));
+                            }
                         }
                     }
                 }
-
-                UpdateRequest::TickerData(t, tx, curr) => {
-                    match stonks_rs::service::stonks::get_ticker_info(t, &tx, Some(curr)).await {
-                        Ok(ticker_data) => {
-                            let _ = message_tx.send(UpdateMessage::Ticker {
-                                ticker: ticker_data.ticker.clone(),
-                                data: ticker_data,
-                            });
-                        }
-
-                        Err(error) => {
-                            tracing::error!("Failed to get info for a ticker: {error}");
-
-                            let _ = message_tx.send(UpdateMessage::Error(error.to_string()));
-                        }
-                    }
-                } // request => {
-                  //     tracing::warn!("Unhandled update request: {:?}", request);
-                  // }
-            }
+            });
         }
 
         tracing::info!("Update task stopped");
