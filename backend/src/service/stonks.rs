@@ -41,9 +41,9 @@ pub async fn get_market_value(
     ticker: &str,
     target_currency: Option<Currency>,
 ) -> Result<Decimal> {
-    let current_price = get_current_asset_price(ticker).await?;
-    let asset_currency = get_asset_currency(ticker).await?;
-    let market_value = calc_market_value(transactions, ticker, current_price)?;
+    let financial_data = get_ticker_financial(ticker).await?;
+    let asset_currency = financial_data.currency;
+    let market_value = calc_market_value(transactions, ticker, financial_data.current_price)?;
 
     let exchange_rate = if let Some(target_currency) = target_currency {
         get_exchange_rate(asset_currency, target_currency).await?
@@ -66,7 +66,7 @@ pub fn db_add_transaction(conn: &Connection, tx: Transaction) -> Result<Transact
     transactions::add_transaction(conn, tx)
 }
 
-pub async fn get_ticker_info(
+pub async fn get_ticker_data(
     t: String,
     tx: &[Transaction],
     curr: Option<Currency>,
@@ -80,30 +80,32 @@ pub async fn get_ticker_info(
             ..Default::default()
         });
     }
-    let current_price = get_current_asset_price(t).await?;
-    let asset_currency = get_asset_currency(t).await?;
+
+    let ticker_meta = get_ticker_meta(&t).await?;
+    let mut financial_data = get_ticker_financial(&t).await?;
 
     let exchange_rate = if let Some(t) = curr {
-        get_exchange_rate(asset_currency, t).await?
+        get_exchange_rate(financial_data.currency, t).await?
     } else {
         dec!(1)
     };
 
-    let name = get_ticker_name(t).await?;
-    let market_value = calc_market_value(tx, t, current_price)? * exchange_rate;
+    let market_value = calc_market_value(tx, t, financial_data.current_price)? * exchange_rate;
     let avg_cost = calc_avg_cost(tx, t) * exchange_rate;
     let cost_basis = calc_cost_basis(tx, t) * exchange_rate;
-    let unrealized_gain = calc_unrealized_gain(tx, t, current_price)? * exchange_rate;
-    let unrealized_gain_perc = calc_unrealized_gain_perc(tx, t, current_price)?;
+    let unrealized_gain =
+        calc_unrealized_gain(tx, t, financial_data.current_price)? * exchange_rate;
+    let unrealized_gain_perc = calc_unrealized_gain_perc(tx, t, financial_data.current_price)?;
     let realized_gain = calc_realized_gains(tx, t)? * exchange_rate;
 
     let todays_change = get_todays_change(t).await?;
 
+    financial_data.current_price = financial_data.current_price * exchange_rate;
+
     Ok(TickerData {
-        name,
-        ticker: t.to_string(),
+        meta: ticker_meta,
+        financial: financial_data,
         cost_basis,
-        current_price: current_price * exchange_rate,
         market_value,
         total_shares: buy - sell,
         avg_cost,

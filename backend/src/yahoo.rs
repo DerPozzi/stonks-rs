@@ -1,20 +1,16 @@
 use anyhow::Result;
-use anyhow::anyhow;
 use rust_decimal::Decimal;
 use yahoo_finance_api::Quote;
-use yahoo_finance_api::{self as yahoo, YResponse};
+use yahoo_finance_api::{self as yahoo};
 
-use crate::types::Currency;
+use crate::types::TickerFinancialData;
 use crate::types::TimeFrame;
+use crate::types::{Currency, TickerMetaData};
 
-pub async fn get_current_asset_price(asset_ticker: &str) -> Result<Decimal> {
+pub async fn get_ticker_financial(asset_ticker: &str) -> Result<TickerFinancialData> {
     let provider = yahoo::YahooConnector::new()?;
     let response = provider
-        .get_quote_range(
-            asset_ticker,
-            &TimeFrame::OneMinute.to_string(),
-            &TimeFrame::OneDay.to_string(),
-        )
+        .get_latest_quotes(asset_ticker, &TimeFrame::OneDay.to_string())
         .await?;
 
     let quote: Quote = match response.last_quote() {
@@ -28,22 +24,16 @@ pub async fn get_current_asset_price(asset_ticker: &str) -> Result<Decimal> {
         }
     };
 
-    let close = Decimal::try_from(quote.close).unwrap();
+    let close = Decimal::try_from(quote.close)?;
 
-    Ok(close)
-}
+    let meta = response.metadata()?;
+    let currency = Currency::try_from(meta.currency.unwrap_or_default())?;
 
-#[allow(dead_code)]
-pub async fn get_asset_data(asset_ticker: String, _time_frame: TimeFrame) -> Result<YResponse> {
-    let provider = yahoo::YahooConnector::new()?;
-
-    let response = provider
-        .get_latest_quotes(asset_ticker.as_str(), "1d")
-        .await?;
-
-    println!("{:#?}", response);
-
-    Ok(response)
+    Ok(TickerFinancialData {
+        current_price: close,
+        currency,
+        ..Default::default()
+    })
 }
 
 pub async fn get_exchange_rate(current: Currency, target: Currency) -> Result<Decimal> {
@@ -53,43 +43,6 @@ pub async fn get_exchange_rate(current: Currency, target: Currency) -> Result<De
 
     let close = response.last_quote()?.close;
     Ok(Decimal::try_from(close)?)
-}
-
-pub async fn get_asset_currency(ticker: &str) -> Result<Currency> {
-    let provider = yahoo::YahooConnector::new()?;
-
-    // Should be this but seems to be broken
-    // let response = provider.get_ticker_info(ticker).await?;
-
-    let response = provider.get_latest_quotes(ticker, "1d").await?;
-
-    let currency = &response.chart.result.as_ref().unwrap()[0]
-        .meta
-        .currency
-        .as_ref()
-        .unwrap()
-        .clone();
-
-    match currency.to_uppercase().as_str() {
-        "USD" => Ok(Currency::USD),
-        "EUR" => Ok(Currency::EUR),
-        _ => Err(anyhow!("Unknown currency")),
-    }
-}
-
-pub async fn get_ticker_name(t: &str) -> Result<String> {
-    let provider = yahoo_finance_api::YahooConnector::new()?;
-
-    let response = provider.get_latest_quotes(t, "1d").await?;
-
-    let long_name = response.chart.result.as_ref().unwrap()[0]
-        .meta
-        .long_name
-        .as_ref()
-        .unwrap_or(&"".to_string())
-        .clone();
-
-    Ok(long_name)
 }
 
 pub async fn get_todays_change(t: &str) -> Result<Decimal> {
@@ -114,4 +67,19 @@ pub async fn get_todays_change(t: &str) -> Result<Decimal> {
         return Ok(rust_decimal_macros::dec!(0));
     };
     Ok(change_percent * rust_decimal_macros::dec!(100))
+}
+
+pub async fn get_ticker_meta(t: &str) -> Result<TickerMetaData> {
+    let provider = yahoo_finance_api::YahooConnector::new()?;
+
+    let response = provider.get_latest_quotes(t, "1d").await?;
+    let meta = response.chart.result.as_ref().unwrap()[0].meta.clone();
+
+    let long_name = meta.long_name;
+
+    Ok(TickerMetaData {
+        ticker: t.into(),
+        long_name,
+        ..Default::default()
+    })
 }
