@@ -3,16 +3,29 @@ use ratatui::{
     layout::{Alignment, Rect},
     style::Style,
     text::Span,
-    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, TableState, Wrap},
+    widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, StatefulWidget, TableState, Wrap},
 };
 use rust_decimal_macros::dec;
+use stonks_rs::types::CycleEnum;
+use strum::{EnumIter, FromRepr};
 
-use crate::{app::App, components::*, pages::PageState};
+use crate::{
+    app::App,
+    components::{inputs::CurrentFocus, table::TickerDataTable},
+    pages::PageState,
+};
 
 #[derive(Debug, Default)]
 pub struct OverviewState {
-    overview_table: TableState,
+    pub overview_table: TableState,
 }
+#[derive(Debug, Default, Clone, Copy, PartialEq, FromRepr, EnumIter)]
+pub enum InputFocus {
+    #[default]
+    Table,
+}
+
+impl CycleEnum for InputFocus {}
 
 pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     let mut entries: Vec<_> = app.portfolio.ticker_info.iter().collect();
@@ -98,15 +111,18 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         todo!()
     };
 
-    table::render(
-        frame,
-        area,
-        "Ticker Info",
-        table_header,
-        table_rows,
-        // is_currently_focused(currently_focused, InputFocus::Table),
-        true,
-        &mut state.overview_table,
-        app.theme.clone(),
-    );
+    let CurrentFocus::OverviewPage(currently_focused) = app.focused_field else {
+        return;
+    };
+
+    let table = TickerDataTable {
+        header: table_header,
+        tool_tip: " ↑↓ Navigate - <i> Information ",
+        label: "Ticker Info",
+        rows: table_rows,
+        focused: currently_focused == InputFocus::Table,
+        theme: app.theme.clone(),
+    };
+
+    table.render(area, frame.buffer_mut(), &mut state.overview_table);
 }

@@ -30,7 +30,11 @@ fn bottom_title(app: &App) -> Line<'static> {
                     } else {
                         app.theme.secondary
                     })
-                    .add_modifier(Modifier::BOLD)
+                    .add_modifier(if app.current_page_focused {
+                        Modifier::ITALIC & Modifier::BOLD & Modifier::UNDERLINED
+                    } else {
+                        Modifier::RAPID_BLINK
+                    })
             } else {
                 Style::default().fg(app.theme.text)
             };

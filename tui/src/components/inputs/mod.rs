@@ -12,6 +12,7 @@ pub enum CurrentFocus {
     None,
     TransactionPage(pages::transactions::InputFocus),
     AddTransaction(pages::add_transaction::InputFocus),
+    OverviewPage(pages::overview::InputFocus),
 }
 
 impl CycleEnum for CurrentFocus {
@@ -24,7 +25,7 @@ impl CycleEnum for CurrentFocus {
             CurrentFocus::AddTransaction(input_focus) => {
                 CurrentFocus::AddTransaction(input_focus.previous())
             }
-            CurrentFocus::None => CurrentFocus::None,
+            _ => CurrentFocus::None,
         }
     }
 
@@ -37,7 +38,7 @@ impl CycleEnum for CurrentFocus {
             CurrentFocus::AddTransaction(input_focus) => {
                 CurrentFocus::AddTransaction(input_focus.next())
             }
-            CurrentFocus::None => CurrentFocus::None,
+            _ => CurrentFocus::None,
         }
     }
 }

@@ -1,6 +1,6 @@
 use strum::EnumIter;
 
-use crate::pages::overview::OverviewState;
+use crate::pages::{overview::OverviewState, transactions::TransactionState};
 
 pub mod add_transaction;
 pub mod dashboard;
@@ -16,10 +16,16 @@ pub enum PageState {
 }
 
 impl PageState {
-    #[allow(dead_code)]
     pub fn overview_mut(&mut self) -> Option<&mut OverviewState> {
         match self {
             PageState::Overview(state) => Some(state),
+            _ => None,
+        }
+    }
+
+    pub fn transaction_mut(&mut self) -> Option<&mut TransactionState> {
+        match self {
+            PageState::Transaction(state) => Some(state),
             _ => None,
         }
     }
