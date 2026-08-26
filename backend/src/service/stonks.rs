@@ -81,8 +81,8 @@ pub async fn get_ticker_data(
         });
     }
 
-    let ticker_meta = get_ticker_meta(&t).await?;
-    let mut financial_data = get_ticker_financial(&t).await?;
+    let ticker_meta = get_ticker_meta(t).await?;
+    let mut financial_data = get_ticker_financial(t).await?;
 
     let exchange_rate = if let Some(t) = curr {
         get_exchange_rate(financial_data.currency, t).await?
@@ -100,7 +100,7 @@ pub async fn get_ticker_data(
 
     let todays_change = get_todays_change(t).await?;
 
-    financial_data.current_price = financial_data.current_price * exchange_rate;
+    financial_data.current_price *= exchange_rate;
 
     Ok(TickerData {
         meta: ticker_meta,

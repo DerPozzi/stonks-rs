@@ -159,6 +159,7 @@ pub enum UpdateRequest {
 }
 
 /// Nachrichten vom Background-Task zurück zur App.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 pub enum UpdateMessage {
     PortfolioValue(Decimal),
