@@ -29,6 +29,7 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
             }
             KeyCode::Tab => app.handle_tab(),
             KeyCode::BackTab => app.handle_shift_tab(),
+
             _ => {}
         }
 
@@ -40,6 +41,11 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
     // ============================================================
 
     match key_event.code {
+        KeyCode::Up | KeyCode::Down => {
+            // Cycle through table
+            tracing::info!("Pressed up or down");
+            app.handle_up_down(key_event.code)
+        }
         KeyCode::Char('c') | KeyCode::Char('C') if key_event.modifiers == KeyModifiers::CONTROL => {
             app.quit();
         }
@@ -93,16 +99,15 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
             }
 
             match &app.focused_field {
-                CurrentFocus::None => {
-                    // Page ist fokussiert, aber noch kein Input-Feld
-                }
-
                 CurrentFocus::TransactionPage(_) => {
                     app.input_mode = true;
                 }
 
                 CurrentFocus::AddTransaction(_) => {
                     app.input_mode = true;
+                }
+                _ => {
+                    // Page ist fokussiert, aber noch kein Input-Feld
                 }
             }
         }
@@ -116,8 +121,6 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
         KeyCode::Esc => {
             if app.input_mode {
                 app.input_mode = false;
-            } else if app.focused_field != CurrentFocus::None {
-                app.focused_field = CurrentFocus::None;
             } else if app.current_page_focused {
                 app.unfocus_page();
             }

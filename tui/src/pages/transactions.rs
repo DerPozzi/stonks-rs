@@ -4,6 +4,7 @@ use std::fmt::Display;
 use chrono::Datelike;
 
 use chrono::NaiveDate;
+use ratatui::widgets::StatefulWidget;
 use ratatui::widgets::TableState;
 use ratatui::{
     Frame,
@@ -250,16 +251,17 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         todo!()
     };
 
-    table::render(
-        frame,
-        areas[2],
-        "[4] Transactions",
-        table_header,
-        table_rows,
-        is_currently_focused(currently_focused.copied(), InputFocus::Table),
-        &mut state.transaction_table,
-        app.theme.clone(),
-    );
+    let table = table::TransactionDividendTable {
+        header: table_header,
+        tool_tip: " ↑↓ Navigate - <e> Edit ",
+        label: "[4] Transactions",
+        rows: table_rows,
+        focused: is_currently_focused(currently_focused.copied(), InputFocus::Table),
+        theme: app.theme.clone(),
+    };
+
+    table.render(areas[2], frame.buffer_mut(), &mut state.transaction_table);
+
     let transaction_ui_areas = TransactionUiAreas {
         filters: Some(transaction_filter_areas),
     };

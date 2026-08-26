@@ -5,6 +5,7 @@ use std::{
 };
 
 use chrono::NaiveDate;
+use crossterm::event::KeyCode;
 use ratatui::crossterm::event::MouseEvent;
 
 use anyhow::Result;
@@ -185,6 +186,10 @@ impl App {
         self.current_page = match self.current_page {
             Page::Dashboard => {
                 self.page_state = PageState::Overview(pages::overview::OverviewState::default());
+                self.focused_field = CurrentFocus::OverviewPage(pages::overview::InputFocus::Table);
+                if let Some(page_state) = self.page_state.overview_mut() {
+                    page_state.overview_table.select_first();
+                }
                 Page::Overview
             }
             Page::Overview => {
@@ -275,7 +280,7 @@ impl App {
     pub fn focus_page(&mut self) {
         self.focused_field = match &self.current_page {
             Page::Dashboard => todo!(),
-            Page::Overview => todo!(),
+            Page::Overview => CurrentFocus::OverviewPage(pages::overview::InputFocus::default()),
             Page::Transactions => {
                 CurrentFocus::TransactionPage(pages::transactions::InputFocus::default())
             }
@@ -485,5 +490,41 @@ impl App {
             Err(e) => tracing::error!("Failed to update transactions: {e}"),
         }
         self.request_updates();
+    }
+
+    pub fn handle_up_down(&mut self, code: KeyCode) {
+        match code {
+            KeyCode::Down => match self.focused_field {
+                CurrentFocus::OverviewPage(pages::overview::InputFocus::Table) => {
+                    if let Some(page_state) = self.page_state.overview_mut() {
+                        page_state.overview_table.select_next();
+                    }
+                }
+
+                CurrentFocus::TransactionPage(pages::transactions::InputFocus::Table) => {
+                    if let Some(page_state) = self.page_state.transaction_mut() {
+                        page_state.transaction_table.select_next();
+                    }
+                }
+
+                _ => {}
+            },
+            KeyCode::Up => match self.focused_field {
+                CurrentFocus::OverviewPage(pages::overview::InputFocus::Table) => {
+                    if let Some(page_state) = self.page_state.overview_mut() {
+                        page_state.overview_table.select_previous();
+                    }
+                }
+
+                CurrentFocus::TransactionPage(pages::transactions::InputFocus::Table) => {
+                    if let Some(page_state) = self.page_state.transaction_mut() {
+                        page_state.transaction_table.select_previous();
+                    }
+                }
+
+                _ => {}
+            },
+            _ => {}
+        }
     }
 }
