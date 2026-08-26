@@ -87,6 +87,12 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
         KeyCode::Char('s') if app.current_page == Page::AddTransaction => {
             let _ = app.save_new_transaction();
         }
+        KeyCode::Char('c') => {
+            if app.current_page == Page::AddTransaction {
+                app.current_page = Page::Transactions;
+                app.current_page_focused = false;
+            }
+        }
 
         KeyCode::Enter => {
             if app.input_mode {
@@ -109,12 +115,6 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
                 _ => {
                     // Page ist fokussiert, aber noch kein Input-Feld
                 }
-            }
-        }
-        KeyCode::Char('c') => {
-            if app.current_page == Page::AddTransaction {
-                app.current_page = Page::Transactions;
-                app.current_page_focused = false;
             }
         }
         // Esc

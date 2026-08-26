@@ -107,6 +107,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
             ),
             Span::raw(" "),
         ]))
+        .title_bottom(Line::from(Span::raw(" <c> - Cancel | <s> - Save ")).right_aligned())
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(app.theme.primary));
@@ -249,7 +250,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
 
     // frame.render_widget(debug, rows[4]);
 
-    render_button(app, frame, save_area, "[s] Save", true, false);
+    // render_button(app, frame, save_area, "[s] Save", true, false);
 
     let _create_transaction_areas = CreateTransactionAreas {
         _ticker: row_1[0],
@@ -265,6 +266,7 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
     };
 }
 
+#[allow(dead_code)]
 fn render_button(
     app: &App,
     frame: &mut Frame,
