@@ -33,7 +33,7 @@ fn bottom_title(app: &App) -> Line<'static> {
                     .add_modifier(if app.current_page_focused {
                         Modifier::ITALIC & Modifier::BOLD & Modifier::UNDERLINED
                     } else {
-                        Modifier::RAPID_BLINK
+                        Modifier::ITALIC
                     })
             } else {
                 Style::default().fg(app.theme.text)
@@ -64,7 +64,8 @@ fn render_page(app: &mut App, frame: &mut Frame, area: Rect) {
 pub fn render(app: &mut App, frame: &mut Frame) {
     let block = Block::default()
         .title(format!(
-            " Stonks-rs | {} - v{}",
+            " {} | Stonks-rs | {} - v{} ",
+            if app.input_mode { "INPUT" } else { "NORMAL" },
             app.current_page,
             env!("CARGO_PKG_VERSION")
         ))
