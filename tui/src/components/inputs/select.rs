@@ -14,10 +14,10 @@ pub fn render_select(
     title: &str,
     value: String,
     focused: bool,
-    input_text: bool,
+    input_mode: bool,
     theme: &Theme,
 ) {
-    let border_color = if focused && input_text {
+    let border_color = if focused && input_mode {
         theme.primary
     } else if focused {
         theme.secondary
