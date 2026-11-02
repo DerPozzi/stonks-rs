@@ -183,6 +183,7 @@ impl App {
 
     pub fn next_page(&mut self) {
         self.current_action = Action::default();
+        self.focused_field = CurrentFocus::None;
         self.current_page = match self.current_page {
             Page::Dashboard => {
                 self.page_state = PageState::Overview(pages::overview::OverviewState::default());
@@ -207,12 +208,16 @@ impl App {
     }
     pub fn previous_page(&mut self) {
         self.current_action = Action::default();
+        self.focused_field = CurrentFocus::None;
         self.current_page = match self.current_page {
             Page::Dashboard => Page::Dividends,
             Page::Overview => Page::Dashboard,
             Page::Transactions => {
-                self.transaction_page = TransactionPage::default();
                 self.page_state = PageState::Overview(pages::overview::OverviewState::default());
+                self.focused_field = CurrentFocus::OverviewPage(pages::overview::InputFocus::Table);
+                if let Some(page_state) = self.page_state.overview_mut() {
+                    page_state.overview_table.select_first();
+                }
                 Page::Overview
             }
             Page::Dividends => {

@@ -9,6 +9,7 @@ use strum::IntoEnumIterator;
 
 use crate::{
     app::App,
+    components::inputs::CurrentFocus,
     pages::{self, Page, transactions::TransactionUiAreas},
 };
 
@@ -65,7 +66,13 @@ pub fn render(app: &mut App, frame: &mut Frame) {
     let block = Block::default()
         .title(format!(
             " {} | Stonks-rs | {} - v{} ",
-            if app.input_mode { "INPUT" } else { "NORMAL" },
+            if app.input_mode {
+                "INPUT"
+            } else if app.focused_field != CurrentFocus::None {
+                "SELECT"
+            } else {
+                "NORMAL"
+            },
             app.current_page,
             env!("CARGO_PKG_VERSION")
         ))
