@@ -33,10 +33,22 @@ pub fn render_select(
         Style::default().fg(theme.text)
     };
 
+    let icon = if focused && input_mode {
+        Span::styled(" ▼", Style::default().fg(theme.muted))
+    } else {
+        Span::styled(" ◀", Style::default().fg(theme.muted))
+    };
+
     let line = Line::from(vec![
         Span::styled(value, Style::default().fg(theme.text)),
-        Span::styled(" ▼", Style::default().fg(theme.muted)),
+        icon,
     ]);
+
+    let footer = Line::from(vec![Span::styled(
+        " <TAB> | <SHIFT + TAB> ",
+        Style::default().fg(theme.primary),
+    )])
+    .right_aligned();
 
     let widget = Paragraph::new(line)
         .block(
@@ -44,7 +56,12 @@ pub fn render_select(
                 .title(Span::styled(format!(" {title} "), title_style))
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(border_color)),
+                .border_style(Style::default().fg(border_color))
+                .title_bottom(if focused && input_mode {
+                    footer
+                } else {
+                    Span::raw("").into()
+                }),
         )
         .alignment(Alignment::Left);
 
