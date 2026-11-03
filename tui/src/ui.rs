@@ -63,16 +63,18 @@ fn render_page(app: &mut App, frame: &mut Frame, area: Rect) {
 }
 
 pub fn render(app: &mut App, frame: &mut Frame) {
+    let current_mode = if app.input_mode {
+        "INPUT"
+    } else if app.focused_field != CurrentFocus::None {
+        "SELECT"
+    } else {
+        "NORMAL"
+    };
+
     let block = Block::default()
         .title(format!(
-            " {} | Stonks-rs | {} - v{} ",
-            if app.input_mode {
-                "INPUT"
-            } else if app.focused_field != CurrentFocus::None {
-                "SELECT"
-            } else {
-                "NORMAL"
-            },
+            " {} | {} | v{} ",
+            current_mode,
             app.current_page,
             env!("CARGO_PKG_VERSION")
         ))
