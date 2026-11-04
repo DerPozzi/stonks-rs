@@ -32,7 +32,7 @@ fn bottom_title(app: &App) -> Line<'static> {
                         app.theme.secondary
                     })
                     .add_modifier(if app.current_page_focused {
-                        Modifier::ITALIC & Modifier::BOLD & Modifier::UNDERLINED
+                        Modifier::BOLD & Modifier::UNDERLINED
                     } else {
                         Modifier::ITALIC
                     })
