@@ -305,7 +305,7 @@ pub fn render_filter_bar(app: &mut App, frame: &mut Frame, area: Rect) -> Filter
     frame.render_stateful_widget(
         SelectDropdown {
             title: "[1] Period",
-            values: TimeFrame::iter(),
+            _values: TimeFrame::iter(),
             focused: is_currently_focused(currently_focused, InputFocus::Period),
             theme: &app.theme,
             input_mode: app.input_mode,
@@ -316,7 +316,7 @@ pub fn render_filter_bar(app: &mut App, frame: &mut Frame, area: Rect) -> Filter
     frame.render_stateful_widget(
         SelectDropdown {
             title: "[2] Type",
-            values: TransactionTypeFilter::iter(),
+            _values: TransactionTypeFilter::iter(),
             focused: is_currently_focused(currently_focused, InputFocus::TransactionType),
             theme: &app.theme,
             input_mode: app.input_mode,

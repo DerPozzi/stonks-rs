@@ -163,7 +163,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     frame.render_stateful_widget(
         SelectDropdown {
             title: "[2] Type",
-            values: TransactionType::iter(),
+            _values: TransactionType::iter(),
             focused: is_currently_focused(currently_focused, InputFocus::TransactionType),
             theme: &app.theme,
             input_mode: app.input_mode,
@@ -205,7 +205,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     frame.render_stateful_widget(
         SelectDropdown {
             title: "[6] Currency",
-            values: Currency::iter(),
+            _values: Currency::iter(),
             focused: is_currently_focused(currently_focused, InputFocus::TransactionType),
             theme: &app.theme,
             input_mode: app.input_mode,

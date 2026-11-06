@@ -20,11 +20,11 @@ use stonks_rs::{
 use tokio::sync::mpsc;
 
 use crate::{
-    components::inputs::{CurrentFocus, select::DropdownState},
+    components::inputs::CurrentFocus,
     pages::{
         self, Page, PageState,
         add_transaction::CreateTransaction,
-        transactions::{TransactionPage, TransactionTypeFilter, TransactionUiAreas},
+        transactions::{TransactionPage, TransactionUiAreas},
     },
     theme::{Theme, load_theme},
     update::{UpdateMessage, UpdateRequest},

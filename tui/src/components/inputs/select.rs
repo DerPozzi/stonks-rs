@@ -11,7 +11,7 @@ use stonks_rs::types::CycleEnum;
 
 pub struct SelectDropdown<'a, I> {
     pub title: &'a str,
-    pub values: I,
+    pub _values: I,
     pub focused: bool,
     pub theme: &'a Theme,
     pub input_mode: bool,
@@ -20,7 +20,7 @@ pub struct SelectDropdown<'a, I> {
 #[derive(Debug)]
 pub struct DropdownState<T: CycleEnum> {
     pub selected: T,
-    pub expanded: bool,
+    pub _expanded: bool,
 }
 
 impl<T: CycleEnum> DropdownState<T> {
@@ -37,7 +37,7 @@ impl<T: CycleEnum + Default> Default for DropdownState<T> {
     fn default() -> Self {
         Self {
             selected: T::default(),
-            expanded: false,
+            _expanded: false,
         }
     }
 }
