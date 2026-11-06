@@ -20,11 +20,11 @@ use stonks_rs::{
 use tokio::sync::mpsc;
 
 use crate::{
-    components::inputs::CurrentFocus,
+    components::inputs::{CurrentFocus, select::DropdownState},
     pages::{
         self, Page, PageState,
         add_transaction::CreateTransaction,
-        transactions::{TransactionPage, TransactionUiAreas},
+        transactions::{TransactionPage, TransactionTypeFilter, TransactionUiAreas},
     },
     theme::{Theme, load_theme},
     update::{UpdateMessage, UpdateRequest},
@@ -257,11 +257,11 @@ impl App {
         let new_tx = Transaction {
             id: None,
             ticker: trans.ticker.clone(),
-            transaction_type: trans.transaction_type,
+            transaction_type: trans.transaction_type.selected,
             trade_date: NaiveDate::parse_from_str(&trans.trade_date_input, "%Y-%m-%d").unwrap(),
             quantity: trans.quantity.parse::<Decimal>()?,
             price: trans.price.parse::<Decimal>()?,
-            currency: trans.currency,
+            currency: trans.currency.selected,
             fees: trans.fees.parse::<Decimal>()?,
         };
 
@@ -362,24 +362,21 @@ impl App {
             match self.focused_field {
                 CurrentFocus::TransactionPage(input_focus) => match input_focus {
                     pages::transactions::InputFocus::TransactionType => {
-                        self.transaction_page.filters.transaction_type =
-                            self.transaction_page.filters.transaction_type.next();
+                        self.transaction_page.filters.transaction_type.next();
                     }
 
                     pages::transactions::InputFocus::Period => {
-                        self.transaction_page.filters.period =
-                            self.transaction_page.filters.period.next();
+                        self.transaction_page.filters.period.next();
                     }
                     _ => {}
                 },
                 CurrentFocus::AddTransaction(input_focus) => match input_focus {
                     pages::add_transaction::InputFocus::TransactionType => {
-                        self.create_transaction.transaction_type =
-                            self.create_transaction.transaction_type.next();
+                        self.create_transaction.transaction_type.next();
                     }
 
                     pages::add_transaction::InputFocus::Currency => {
-                        self.create_transaction.currency = self.create_transaction.currency.next();
+                        self.create_transaction.currency.next();
                     }
 
                     _ => {}
@@ -397,25 +394,21 @@ impl App {
             match self.focused_field {
                 CurrentFocus::TransactionPage(input_focus) => match input_focus {
                     pages::transactions::InputFocus::TransactionType => {
-                        self.transaction_page.filters.transaction_type =
-                            self.transaction_page.filters.transaction_type.previous();
+                        self.transaction_page.filters.transaction_type.previous();
                     }
 
                     pages::transactions::InputFocus::Period => {
-                        self.transaction_page.filters.period =
-                            self.transaction_page.filters.period.previous();
+                        self.transaction_page.filters.period.previous();
                     }
                     _ => {}
                 },
                 CurrentFocus::AddTransaction(input_focus) => match input_focus {
                     pages::add_transaction::InputFocus::TransactionType => {
-                        self.create_transaction.transaction_type =
-                            self.create_transaction.transaction_type.previous();
+                        self.create_transaction.transaction_type.previous();
                     }
 
                     pages::add_transaction::InputFocus::Currency => {
-                        self.create_transaction.currency =
-                            self.create_transaction.currency.previous();
+                        self.create_transaction.currency.previous();
                     }
 
                     _ => {}

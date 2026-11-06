@@ -1,69 +1,106 @@
+use crate::theme::Theme;
 use ratatui::{
-    Frame,
+    buffer::Buffer,
     layout::{Alignment, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Paragraph},
+    widgets::{Block, BorderType, Borders, Paragraph, StatefulWidget, Widget},
 };
+use std::fmt::Display;
+use stonks_rs::types::CycleEnum;
 
-use crate::theme::Theme;
+pub struct SelectDropdown<'a, I> {
+    pub title: &'a str,
+    pub values: I,
+    pub focused: bool,
+    pub theme: &'a Theme,
+    pub input_mode: bool,
+}
 
-pub fn render_select(
-    frame: &mut Frame,
-    area: Rect,
-    title: &str,
-    value: String,
-    focused: bool,
-    input_mode: bool,
-    theme: &Theme,
-) {
-    let border_color = if focused && input_mode {
-        theme.primary
-    } else if focused {
-        theme.secondary
-    } else {
-        theme.border
-    };
+#[derive(Debug)]
+pub struct DropdownState<T: CycleEnum> {
+    pub selected: T,
+    pub expanded: bool,
+}
 
-    let title_style = if focused {
-        Style::default()
-            .fg(theme.primary)
-            .add_modifier(Modifier::BOLD)
-    } else {
-        Style::default().fg(theme.text)
-    };
+impl<T: CycleEnum> DropdownState<T> {
+    pub fn next(&mut self) {
+        self.selected = self.selected.next();
+    }
 
-    let icon = if focused && input_mode {
-        Span::styled(" ▼", Style::default().fg(theme.muted))
-    } else {
-        Span::styled(" ◀", Style::default().fg(theme.muted))
-    };
+    pub fn previous(&mut self) {
+        self.selected = self.selected.previous();
+    }
+}
 
-    let line = Line::from(vec![
-        Span::styled(value, Style::default().fg(theme.text)),
-        icon,
-    ]);
+impl<T: CycleEnum + Default> Default for DropdownState<T> {
+    fn default() -> Self {
+        Self {
+            selected: T::default(),
+            expanded: false,
+        }
+    }
+}
 
-    let footer = Line::from(vec![Span::styled(
-        " <TAB> | <SHIFT + TAB> ",
-        Style::default().fg(theme.primary),
-    )])
-    .right_aligned();
+impl<'a, I> StatefulWidget for SelectDropdown<'a, I>
+where
+    I: Iterator + Clone,
+    I::Item: Copy + PartialEq + Display + Default + CycleEnum,
+{
+    type State = DropdownState<I::Item>;
 
-    let widget = Paragraph::new(line)
-        .block(
-            Block::default()
-                .title(Span::styled(format!(" {title} "), title_style))
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(border_color))
-                .title_bottom(if focused && input_mode {
-                    footer
-                } else {
-                    Span::raw("").into()
-                }),
-        )
-        .alignment(Alignment::Left);
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let border_color = if self.focused && self.input_mode {
+            self.theme.primary
+        } else if self.focused {
+            self.theme.secondary
+        } else {
+            self.theme.border
+        };
 
-    frame.render_widget(widget, area);
+        let title_style = if self.focused {
+            Style::default()
+                .fg(self.theme.primary)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(self.theme.text)
+        };
+
+        let icon = if self.focused && self.input_mode {
+            Span::styled(" ▼", Style::default().fg(self.theme.muted))
+        } else {
+            Span::styled(" ◀", Style::default().fg(self.theme.muted))
+        };
+
+        let line = Line::from(vec![
+            Span::styled(
+                state.selected.to_string(),
+                Style::default().fg(self.theme.text),
+            ),
+            icon,
+        ]);
+
+        let footer = Line::from(vec![Span::styled(
+            " <TAB> | <SHIFT + TAB> ",
+            Style::default().fg(self.theme.primary),
+        )])
+        .right_aligned();
+
+        let select = Paragraph::new(line)
+            .block(
+                Block::default()
+                    .title(Span::styled(format!(" {} ", self.title), title_style))
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .border_style(Style::default().fg(border_color))
+                    .title_bottom(if self.focused && self.input_mode {
+                        footer
+                    } else {
+                        Span::raw("").into()
+                    }),
+            )
+            .alignment(Alignment::Left);
+
+        select.render(area, buf);
+    }
 }

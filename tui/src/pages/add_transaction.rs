@@ -6,11 +6,15 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Paragraph},
 };
 
-use strum::{EnumIter, FromRepr};
+use strum::{EnumIter, FromRepr, IntoEnumIterator};
 
 use crate::{
     app::App,
-    components::inputs::{CurrentFocus, input::*, select::render_select},
+    components::inputs::{
+        CurrentFocus,
+        input::*,
+        select::{DropdownState, SelectDropdown},
+    },
 };
 
 use stonks_rs::types::{Currency, CycleEnum, TransactionType};
@@ -34,7 +38,7 @@ impl CycleEnum for InputFocus {}
 pub struct CreateTransaction {
     pub ticker: String,
 
-    pub transaction_type: TransactionType,
+    pub transaction_type: DropdownState<TransactionType>,
 
     pub trade_date_input: String,
 
@@ -44,26 +48,19 @@ pub struct CreateTransaction {
     pub fees: String,
     pub taxes: String,
 
-    pub currency: Currency,
+    pub currency: DropdownState<Currency>,
 }
 impl Default for CreateTransaction {
     fn default() -> Self {
-        let today = chrono::Local::now().date_naive();
-
         Self {
             ticker: String::new(),
-
-            transaction_type: TransactionType::Buy,
-
-            trade_date_input: today.format("%Y-%m-%d").to_string(),
-
+            transaction_type: DropdownState::default(),
+            trade_date_input: chrono::Local::now().format("%Y-%m-%d").to_string(),
             quantity: String::new(),
             price: String::new(),
-
+            currency: DropdownState::default(),
             fees: "0".to_string(),
             taxes: "0".to_string(),
-
-            currency: Currency::EUR,
         }
     }
 }
@@ -90,7 +87,7 @@ fn is_currently_focused(current: Option<&InputFocus>, check: InputFocus) -> bool
     false
 }
 
-pub fn render(app: &App, frame: &mut Frame, area: Rect) {
+pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     let currently_focused = match &app.focused_field {
         CurrentFocus::AddTransaction(input_focus) => Some(input_focus),
         _ => None,
@@ -163,14 +160,16 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         &app.theme,
     );
 
-    render_select(
-        frame,
-        row_1[1],
-        "[2] Type",
-        app.create_transaction.transaction_type.to_string(),
-        is_currently_focused(currently_focused, InputFocus::TransactionType),
-        app.input_mode,
-        &app.theme,
+    frame.render_stateful_widget(
+        SelectDropdown {
+            title: "[2] Type",
+            values: TransactionType::iter(),
+            focused: is_currently_focused(currently_focused, InputFocus::TransactionType),
+            theme: &app.theme,
+            input_mode: app.input_mode,
+        },
+        row_1[0],
+        &mut app.create_transaction.transaction_type,
     );
 
     render_input(
@@ -203,14 +202,16 @@ pub fn render(app: &App, frame: &mut Frame, area: Rect) {
         &app.theme,
     );
 
-    render_select(
-        frame,
+    frame.render_stateful_widget(
+        SelectDropdown {
+            title: "[6] Currency",
+            values: Currency::iter(),
+            focused: is_currently_focused(currently_focused, InputFocus::TransactionType),
+            theme: &app.theme,
+            input_mode: app.input_mode,
+        },
         row_3[1],
-        "[6] Currency",
-        app.create_transaction.currency.to_string(),
-        is_currently_focused(currently_focused, InputFocus::Currency),
-        app.input_mode,
-        &app.theme,
+        &mut app.create_transaction.currency,
     );
 
     render_input(
