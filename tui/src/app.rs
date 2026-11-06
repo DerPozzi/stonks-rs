@@ -183,6 +183,7 @@ impl App {
 
     pub fn next_page(&mut self) {
         self.current_action = Action::default();
+        self.focused_field = CurrentFocus::None;
         self.current_page = match self.current_page {
             Page::Dashboard => {
                 self.page_state = PageState::Overview(pages::overview::OverviewState::default());
@@ -207,12 +208,16 @@ impl App {
     }
     pub fn previous_page(&mut self) {
         self.current_action = Action::default();
+        self.focused_field = CurrentFocus::None;
         self.current_page = match self.current_page {
             Page::Dashboard => Page::Dividends,
             Page::Overview => Page::Dashboard,
             Page::Transactions => {
-                self.transaction_page = TransactionPage::default();
                 self.page_state = PageState::Overview(pages::overview::OverviewState::default());
+                self.focused_field = CurrentFocus::OverviewPage(pages::overview::InputFocus::Table);
+                if let Some(page_state) = self.page_state.overview_mut() {
+                    page_state.overview_table.select_first();
+                }
                 Page::Overview
             }
             Page::Dividends => {
@@ -252,11 +257,11 @@ impl App {
         let new_tx = Transaction {
             id: None,
             ticker: trans.ticker.clone(),
-            transaction_type: trans.transaction_type,
+            transaction_type: trans.transaction_type.selected,
             trade_date: NaiveDate::parse_from_str(&trans.trade_date_input, "%Y-%m-%d").unwrap(),
             quantity: trans.quantity.parse::<Decimal>()?,
             price: trans.price.parse::<Decimal>()?,
-            currency: trans.currency,
+            currency: trans.currency.selected,
             fees: trans.fees.parse::<Decimal>()?,
         };
 
@@ -354,27 +359,28 @@ impl App {
     }
     pub fn handle_tab(&mut self) {
         if self.input_mode {
+            let PageState::Transaction(transaction_state) = &mut self.page_state else {
+                todo!()
+            };
             match self.focused_field {
                 CurrentFocus::TransactionPage(input_focus) => match input_focus {
                     pages::transactions::InputFocus::TransactionType => {
-                        self.transaction_page.filters.transaction_type =
-                            self.transaction_page.filters.transaction_type.next();
+                        transaction_state.transaction_type.next();
                     }
 
                     pages::transactions::InputFocus::Period => {
-                        self.transaction_page.filters.period =
-                            self.transaction_page.filters.period.next();
+                        // self.transaction_page.filters.period.next();
+                        transaction_state.period.next();
                     }
                     _ => {}
                 },
                 CurrentFocus::AddTransaction(input_focus) => match input_focus {
                     pages::add_transaction::InputFocus::TransactionType => {
-                        self.create_transaction.transaction_type =
-                            self.create_transaction.transaction_type.next();
+                        self.create_transaction.transaction_type.next();
                     }
 
                     pages::add_transaction::InputFocus::Currency => {
-                        self.create_transaction.currency = self.create_transaction.currency.next();
+                        self.create_transaction.currency.next();
                     }
 
                     _ => {}
@@ -388,29 +394,29 @@ impl App {
     }
 
     pub fn handle_shift_tab(&mut self) {
+        let PageState::Transaction(transaction_state) = &mut self.page_state else {
+            todo!()
+        };
+
         if self.input_mode {
             match self.focused_field {
                 CurrentFocus::TransactionPage(input_focus) => match input_focus {
                     pages::transactions::InputFocus::TransactionType => {
-                        self.transaction_page.filters.transaction_type =
-                            self.transaction_page.filters.transaction_type.previous();
+                        transaction_state.transaction_type.previous();
                     }
 
                     pages::transactions::InputFocus::Period => {
-                        self.transaction_page.filters.period =
-                            self.transaction_page.filters.period.previous();
+                        transaction_state.period.previous();
                     }
                     _ => {}
                 },
                 CurrentFocus::AddTransaction(input_focus) => match input_focus {
                     pages::add_transaction::InputFocus::TransactionType => {
-                        self.create_transaction.transaction_type =
-                            self.create_transaction.transaction_type.previous();
+                        self.create_transaction.transaction_type.previous();
                     }
 
                     pages::add_transaction::InputFocus::Currency => {
-                        self.create_transaction.currency =
-                            self.create_transaction.currency.previous();
+                        self.create_transaction.currency.previous();
                     }
 
                     _ => {}

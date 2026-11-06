@@ -9,6 +9,7 @@ use strum::IntoEnumIterator;
 
 use crate::{
     app::App,
+    components::inputs::CurrentFocus,
     pages::{self, Page, transactions::TransactionUiAreas},
 };
 
@@ -31,9 +32,9 @@ fn bottom_title(app: &App) -> Line<'static> {
                         app.theme.secondary
                     })
                     .add_modifier(if app.current_page_focused {
-                        Modifier::ITALIC & Modifier::BOLD & Modifier::UNDERLINED
+                        Modifier::BOLD & Modifier::UNDERLINED
                     } else {
-                        Modifier::RAPID_BLINK
+                        Modifier::ITALIC
                     })
             } else {
                 Style::default().fg(app.theme.text)
@@ -62,10 +63,20 @@ fn render_page(app: &mut App, frame: &mut Frame, area: Rect) {
 }
 
 pub fn render(app: &mut App, frame: &mut Frame) {
+    let current_mode = if app.input_mode {
+        "INPUT"
+    } else if app.focused_field != CurrentFocus::None {
+        "SELECT"
+    } else {
+        "NORMAL"
+    };
+
     let block = Block::default()
         .title(format!(
-            " Stonks-rs | {} - input_mode: {}",
-            app.current_page, app.input_mode
+            " {} | {} | v{} ",
+            current_mode,
+            app.current_page,
+            env!("CARGO_PKG_VERSION")
         ))
         .title_alignment(Alignment::Center)
         .title_bottom(bottom_title(app))

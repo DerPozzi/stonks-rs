@@ -14,8 +14,10 @@ use ratatui::{
     widgets::{Block, BorderType, Borders, Cell, Row},
 };
 use stonks_rs::types::{CycleEnum, TimeFrame, Transaction, TransactionType};
-use strum::{EnumIter, FromRepr};
+use strum::{EnumIter, FromRepr, IntoEnumIterator};
 
+use crate::components::inputs::select::DropdownState;
+use crate::components::inputs::select::SelectDropdown;
 use crate::pages::PageState;
 use crate::{app::App, components::inputs::*, components::*};
 
@@ -47,8 +49,8 @@ use crate::{app::App, components::inputs::*, components::*};
 */
 #[derive(Debug, Default)]
 pub struct TransactionState {
-    pub period: Period,
-    pub transaction_type: TransactionTypeFilter,
+    pub period: DropdownState<Period>,
+    pub transaction_type: DropdownState<TransactionTypeFilter>,
     pub ticker: String,
     pub transaction_table: TableState,
 }
@@ -156,11 +158,13 @@ fn today() -> NaiveDate {
     chrono::Local::now().date_naive()
 }
 
-fn filter_transactions(app: &App, transactions: &mut Vec<Transaction>) {
+fn filter_transactions(app: &mut App, transactions: &mut Vec<Transaction>) {
     let ticker = app.transaction_page.filters.ticker.to_lowercase();
-
+    let PageState::Transaction(page_state) = &mut app.page_state else {
+        todo!()
+    };
     transactions.retain(|tx| {
-        let matches_period = match app.transaction_page.filters.period {
+        let matches_period = match page_state.period.selected {
             TimeFrame::OneDay => tx.trade_date >= today() - chrono::Duration::days(1),
             TimeFrame::OneWeek => tx.trade_date >= today() - chrono::Duration::days(7),
             TimeFrame::OneMonth => tx.trade_date >= today() - chrono::Duration::days(30),
@@ -175,7 +179,7 @@ fn filter_transactions(app: &App, transactions: &mut Vec<Transaction>) {
             TimeFrame::OneMinute | TimeFrame::OneHour => true,
         };
 
-        let matches_type = match app.transaction_page.filters.transaction_type {
+        let matches_type = match page_state.transaction_type.selected {
             TransactionTypeFilter::All => true,
             TransactionTypeFilter::Sell => tx.transaction_type == TransactionType::Sell,
             TransactionTypeFilter::Buy => tx.transaction_type == TransactionType::Buy,
@@ -187,7 +191,7 @@ fn filter_transactions(app: &App, transactions: &mut Vec<Transaction>) {
 }
 
 pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
-    let currently_focused = match &app.focused_field {
+    let currently_focused = match app.focused_field {
         CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
         _ => None,
     };
@@ -256,7 +260,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         tool_tip: " ↑↓ Navigate - <e> Edit ",
         label: "[4] Transactions",
         rows: table_rows,
-        focused: is_currently_focused(currently_focused.copied(), InputFocus::Table),
+        focused: is_currently_focused(currently_focused, InputFocus::Table),
         theme: app.theme.clone(),
     };
 
@@ -268,8 +272,11 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
     app.ui_areas.transaction_page = Some(transaction_ui_areas);
 }
 
-pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterAreas {
-    let currently_focused = match &app.focused_field {
+pub fn render_filter_bar(app: &mut App, frame: &mut Frame, area: Rect) -> FilterAreas {
+    let PageState::Transaction(state) = &mut app.page_state else {
+        todo!()
+    };
+    let currently_focused = match app.focused_field {
         CurrentFocus::TransactionPage(input_focus) => Some(input_focus),
         _ => None,
     };
@@ -297,24 +304,27 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         .spacing(2)
         .split(inner);
 
-    select::render_select(
-        frame,
+    frame.render_stateful_widget(
+        SelectDropdown {
+            title: "[1] Period",
+            _values: TimeFrame::iter(),
+            focused: is_currently_focused(currently_focused, InputFocus::Period),
+            theme: &app.theme,
+            input_mode: app.input_mode,
+        },
         chunks[0],
-        "[1] Period",
-        app.transaction_page.filters.period.to_string(),
-        is_currently_focused(currently_focused.copied(), InputFocus::Period),
-        app.input_mode,
-        &app.theme,
+        &mut state.period,
     );
-
-    select::render_select(
-        frame,
+    frame.render_stateful_widget(
+        SelectDropdown {
+            title: "[2] Type",
+            _values: TransactionTypeFilter::iter(),
+            focused: is_currently_focused(currently_focused, InputFocus::TransactionType),
+            theme: &app.theme,
+            input_mode: app.input_mode,
+        },
         chunks[1],
-        "[2] Type",
-        app.transaction_page.filters.transaction_type.to_string(),
-        is_currently_focused(currently_focused.copied(), InputFocus::TransactionType),
-        app.input_mode,
-        &app.theme,
+        &mut state.transaction_type,
     );
 
     input::render_input(
@@ -322,7 +332,7 @@ pub fn render_filter_bar(app: &App, frame: &mut Frame, area: Rect) -> FilterArea
         chunks[2],
         "[3] Ticker",
         &app.transaction_page.filters.ticker.to_string(),
-        is_currently_focused(currently_focused.copied(), InputFocus::Ticker),
+        is_currently_focused(currently_focused, InputFocus::Ticker),
         app.input_mode,
         &app.theme,
     );

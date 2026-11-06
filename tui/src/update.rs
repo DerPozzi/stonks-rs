@@ -43,7 +43,6 @@ pub fn keyboard_update(app: &mut App, key_event: KeyEvent) {
     match key_event.code {
         KeyCode::Up | KeyCode::Down => {
             // Cycle through table
-            tracing::info!("Pressed up or down");
             app.handle_up_down(key_event.code)
         }
         KeyCode::Char('c') | KeyCode::Char('C') if key_event.modifiers == KeyModifiers::CONTROL => {
