@@ -16,7 +16,7 @@ on:
       - ".github/workflows/tui.yml"
 
 jobs:
-  backend:
+  tui:
     runs-on: ubuntu-latest
 
     defaults:
