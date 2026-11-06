@@ -168,7 +168,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
             theme: &app.theme,
             input_mode: app.input_mode,
         },
-        row_1[0],
+        row_1[1],
         &mut app.create_transaction.transaction_type,
     );
 
@@ -206,7 +206,7 @@ pub fn render(app: &mut App, frame: &mut Frame, area: Rect) {
         SelectDropdown {
             title: "[6] Currency",
             _values: Currency::iter(),
-            focused: is_currently_focused(currently_focused, InputFocus::TransactionType),
+            focused: is_currently_focused(currently_focused, InputFocus::Currency),
             theme: &app.theme,
             input_mode: app.input_mode,
         },
