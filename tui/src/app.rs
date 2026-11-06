@@ -359,14 +359,18 @@ impl App {
     }
     pub fn handle_tab(&mut self) {
         if self.input_mode {
+            let PageState::Transaction(transaction_state) = &mut self.page_state else {
+                todo!()
+            };
             match self.focused_field {
                 CurrentFocus::TransactionPage(input_focus) => match input_focus {
                     pages::transactions::InputFocus::TransactionType => {
-                        self.transaction_page.filters.transaction_type.next();
+                        transaction_state.transaction_type.next();
                     }
 
                     pages::transactions::InputFocus::Period => {
-                        self.transaction_page.filters.period.next();
+                        // self.transaction_page.filters.period.next();
+                        transaction_state.period.next();
                     }
                     _ => {}
                 },
@@ -390,15 +394,19 @@ impl App {
     }
 
     pub fn handle_shift_tab(&mut self) {
+        let PageState::Transaction(transaction_state) = &mut self.page_state else {
+            todo!()
+        };
+
         if self.input_mode {
             match self.focused_field {
                 CurrentFocus::TransactionPage(input_focus) => match input_focus {
                     pages::transactions::InputFocus::TransactionType => {
-                        self.transaction_page.filters.transaction_type.previous();
+                        transaction_state.transaction_type.previous();
                     }
 
                     pages::transactions::InputFocus::Period => {
-                        self.transaction_page.filters.period.previous();
+                        transaction_state.period.previous();
                     }
                     _ => {}
                 },

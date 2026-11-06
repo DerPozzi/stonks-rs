@@ -158,11 +158,13 @@ fn today() -> NaiveDate {
     chrono::Local::now().date_naive()
 }
 
-fn filter_transactions(app: &App, transactions: &mut Vec<Transaction>) {
+fn filter_transactions(app: &mut App, transactions: &mut Vec<Transaction>) {
     let ticker = app.transaction_page.filters.ticker.to_lowercase();
-
+    let PageState::Transaction(page_state) = &mut app.page_state else {
+        todo!()
+    };
     transactions.retain(|tx| {
-        let matches_period = match app.transaction_page.filters.period.selected {
+        let matches_period = match page_state.period.selected {
             TimeFrame::OneDay => tx.trade_date >= today() - chrono::Duration::days(1),
             TimeFrame::OneWeek => tx.trade_date >= today() - chrono::Duration::days(7),
             TimeFrame::OneMonth => tx.trade_date >= today() - chrono::Duration::days(30),
@@ -177,7 +179,7 @@ fn filter_transactions(app: &App, transactions: &mut Vec<Transaction>) {
             TimeFrame::OneMinute | TimeFrame::OneHour => true,
         };
 
-        let matches_type = match app.transaction_page.filters.transaction_type.selected {
+        let matches_type = match page_state.transaction_type.selected {
             TransactionTypeFilter::All => true,
             TransactionTypeFilter::Sell => tx.transaction_type == TransactionType::Sell,
             TransactionTypeFilter::Buy => tx.transaction_type == TransactionType::Buy,
